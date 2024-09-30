@@ -9,6 +9,8 @@ if (window.location.hostname === 'www.youtube.com') {
     // Variables to hold current filter values
     let currentMaxAge = null;
     let currentMinViews = null;
+    let currentMinLength = null; // New variable for min video length in minutes
+    let currentMaxLength = null; // New variable for max video length in minutes
 
     // Global iteration counter to track the last filtered video
     let lastProcessedIndex = 0;
@@ -103,6 +105,14 @@ if (window.location.hostname === 'www.youtube.com') {
                     <input type="number" id="viewFilter" min="0" placeholder="e.g., 10000">
                 </div>
                 <div>
+                    <label for="minLengthFilter">Min Video Length (minutes):</label>
+                    <input type="number" id="minLengthFilter" min="0" placeholder="e.g., 10">
+                </div>
+                <div>
+                    <label for="maxLengthFilter">Max Video Length (minutes):</label>
+                    <input type="number" id="maxLengthFilter" min="0" placeholder="e.g., 60">
+                </div>
+                <div>
                     <button id="applyFilters">Apply Filters</button>
                     <button id="resetFilters" style="margin-left: 10px;">Reset</button>
                 </div>
@@ -113,32 +123,43 @@ if (window.location.hostname === 'www.youtube.com') {
             document.getElementById('resetFilters').addEventListener('click', () => {
                 document.getElementById('ageFilter').value = '';
                 document.getElementById('viewFilter').value = '';
+                document.getElementById('minLengthFilter').value = '';
+                document.getElementById('maxLengthFilter').value = '';
                 currentMaxAge = null;
                 currentMinViews = null;
+                currentMinLength = null;
+                currentMaxLength = null;
                 lastProcessedIndex = 0; // Reset the counter
                 stopObservingDOMChanges(); // Stop observing when filters are cleared
-                filterRecommendations(currentMaxAge, currentMinViews);
+                filterRecommendations(currentMaxAge, currentMinViews, currentMinLength, currentMaxLength);
                 filterBar.style.display = 'none';
             });
 
             document.getElementById('applyFilters').addEventListener('click', () => {
                 const maxAge = document.getElementById('ageFilter').value;
                 const minViews = document.getElementById('viewFilter').value;
+                const minLength = document.getElementById('minLengthFilter').value;
+                const maxLength = document.getElementById('maxLengthFilter').value;
+
                 currentMaxAge = maxAge ? parseInt(maxAge) : null;
                 currentMinViews = minViews ? parseInt(minViews) : null;
+                currentMinLength = minLength ? parseInt(minLength) : null; // Min video length in minutes
+                currentMaxLength = maxLength ? parseInt(maxLength) : null; // Max video length in minutes
+
                 lastProcessedIndex = 0; // Reset the counter
-                if (currentMaxAge !== null || currentMinViews !== null) {
+                if (currentMaxAge !== null || currentMinViews !== null || currentMinLength !== null || currentMaxLength !== null) {
                     startObservingDOMChanges(); // Start observing only when filters are applied
                 }
 
-                filterRecommendations(currentMaxAge, currentMinViews);
+                filterRecommendations(currentMaxAge, currentMinViews, currentMinLength, currentMaxLength);
             });
         } else {
             filterBar.style.display = filterBar.style.display === 'none' ? 'flex' : 'none';
         }
     }
-    // Function to filter recommendations based on age and views
-    function filterRecommendations(maxAge, minViews) {
+
+    // Function to filter recommendations based on age, views, and video length
+    function filterRecommendations(maxAge, minViews, minLength, maxLength) {
         const videoItems = document.querySelectorAll('#dismissible'); // All video items
         // Only process videos starting from the last processed index
         for (let i = lastProcessedIndex; i < videoItems.length; i++) {
@@ -146,14 +167,19 @@ if (window.location.hostname === 'www.youtube.com') {
             const metadataLine = item.querySelector('#metadata-line');
             const viewsElement = metadataLine ? metadataLine.querySelector('span.inline-metadata-item:nth-of-type(1)') : null;
             const dateElement = metadataLine ? metadataLine.querySelector('span.inline-metadata-item:nth-of-type(2)') : null;
+            const timeElement = item.querySelector('ytd-thumbnail-overlay-time-status-renderer #text');
 
-            if (viewsElement && dateElement) {
+            if (viewsElement && dateElement && timeElement) {
                 const videoAgeInDays = parseVideoAge(dateElement.textContent);
                 const videoViews = parseVideoViews(viewsElement.textContent);
-
+                const videoLengthInMinutes = parseVideoLength(timeElement.textContent);
+                console.log("timeElement: " + timeElement.textContent.trim() + "  -  video in minutes: " + videoLengthInMinutes);
                 const parentContainer = item.closest('ytd-rich-item-renderer');
                 if (parentContainer) {
-                    if ((maxAge && videoAgeInDays > maxAge) || (minViews && videoViews < minViews)) {
+                    if ((maxAge && videoAgeInDays > maxAge) || 
+                        (minViews && videoViews < minViews) || 
+                        (minLength && videoLengthInMinutes < minLength) || 
+                        (maxLength && videoLengthInMinutes > maxLength)) {
                         parentContainer.style.display = 'none';
                     } else {
                         parentContainer.style.display = '';
@@ -183,21 +209,49 @@ if (window.location.hostname === 'www.youtube.com') {
         }
     }
 
+    // Helper function to parse video length (in minutes)
+    function parseVideoLength(lengthText) {
+        const parts = lengthText.trim().split(':').map(Number);
+        
+        if (parts.length === 3) {
+            // Format is "HH:MM:SS"
+            return (parts[0] * 60) + parts[1] + (parts[2] / 60); // Convert to total minutes
+        } else if (parts.length === 2) {
+            // Format is "MM:SS"
+            return parts[0] + (parts[1] / 60); // Convert to total minutes
+        }
+    
+        return 0; // In case of unexpected format
+    }
+    
     // Start observing DOM changes only when filters are applied
     function startObservingDOMChanges() {
         if (domObserver) return; // Prevent multiple observers
-
+    
         domObserver = new MutationObserver((mutations) => {
+            let dismissibleCount = 0; // Initialize a counter for added #dismissible nodes
+    
             mutations.forEach((mutation) => {
                 if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
-                    filterRecommendations(currentMaxAge, currentMinViews); // Only filter newly added videos
+                    // Loop through added nodes
+                    mutation.addedNodes.forEach((node) => {
+                        // Check if the node is an element and matches the #dismissible selector
+                        if (node.nodeType === Node.ELEMENT_NODE && node.matches('#dismissible')) {
+                            dismissibleCount++; // Increment the count for #dismissible nodes
+                        }
+                    });
                 }
             });
+    
+            // Log the total number of #dismissible nodes added
+            if (dismissibleCount > 0) {
+                filterRecommendations(currentMaxAge, currentMinViews, currentMinLength, currentMaxLength); // Filter based on the current criteria
+            }
         });
-
+    
         domObserver.observe(document.body, { childList: true, subtree: true });
     }
-
+    
     // Stop observing DOM changes when filters are cleared
     function stopObservingDOMChanges() {
         if (domObserver) {
