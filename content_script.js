@@ -10,6 +10,9 @@ if (window.location.hostname === 'www.youtube.com') {
     let currentMaxAge = null;
     let currentMinViews = null;
 
+    // Global iteration counter to track the last filtered video
+    let lastProcessedIndex = 0;
+
     // Mutation observer instance (defined globally so we can start/stop it)
     let domObserver = null;
 
@@ -112,6 +115,7 @@ if (window.location.hostname === 'www.youtube.com') {
                 document.getElementById('viewFilter').value = '';
                 currentMaxAge = null;
                 currentMinViews = null;
+                lastProcessedIndex = 0; // Reset the counter
                 stopObservingDOMChanges(); // Stop observing when filters are cleared
                 filterRecommendations(currentMaxAge, currentMinViews);
                 filterBar.style.display = 'none';
@@ -122,7 +126,7 @@ if (window.location.hostname === 'www.youtube.com') {
                 const minViews = document.getElementById('viewFilter').value;
                 currentMaxAge = maxAge ? parseInt(maxAge) : null;
                 currentMinViews = minViews ? parseInt(minViews) : null;
-
+                lastProcessedIndex = 0; // Reset the counter
                 if (currentMaxAge !== null || currentMinViews !== null) {
                     startObservingDOMChanges(); // Start observing only when filters are applied
                 }
@@ -133,11 +137,12 @@ if (window.location.hostname === 'www.youtube.com') {
             filterBar.style.display = filterBar.style.display === 'none' ? 'flex' : 'none';
         }
     }
-
     // Function to filter recommendations based on age and views
     function filterRecommendations(maxAge, minViews) {
-        const videoItems = document.querySelectorAll('#dismissible');
-        videoItems.forEach((item) => {
+        const videoItems = document.querySelectorAll('#dismissible'); // All video items
+        // Only process videos starting from the last processed index
+        for (let i = lastProcessedIndex; i < videoItems.length; i++) {
+            const item = videoItems[i];
             const metadataLine = item.querySelector('#metadata-line');
             const viewsElement = metadataLine ? metadataLine.querySelector('span.inline-metadata-item:nth-of-type(1)') : null;
             const dateElement = metadataLine ? metadataLine.querySelector('span.inline-metadata-item:nth-of-type(2)') : null;
@@ -155,7 +160,9 @@ if (window.location.hostname === 'www.youtube.com') {
                     }
                 }
             }
-        });
+        }
+        // Update the counter after processing all new videos
+        lastProcessedIndex = videoItems.length;
     }
 
     // Helper function to parse video age (in days)
@@ -182,8 +189,8 @@ if (window.location.hostname === 'www.youtube.com') {
 
         domObserver = new MutationObserver((mutations) => {
             mutations.forEach((mutation) => {
-                if (mutation.type === 'childList' || mutation.type === 'subtree') {
-                    filterRecommendations(currentMaxAge, currentMinViews); // Apply filters to new elements
+                if (mutation.type === 'childList' && mutation.addedNodes.length > 0) {
+                    filterRecommendations(currentMaxAge, currentMinViews); // Only filter newly added videos
                 }
             });
         });
