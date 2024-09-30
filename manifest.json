@@ -1,21 +1,24 @@
 {
-    "manifest_version": 2,
-    "name": "YouTube Recommendation Filter",
-    "version": "1.4",
-    "description": "Filter YouTube recommendations by video age and views",
-    "permissions": [
-      "tabs",
-      "https://www.youtube.com/*"
-    ],
-    "icons": {
-      "48": "icons/icon.png"
-    },
-    "content_scripts": [
-      {
-        "matches": ["https://www.youtube.com/*"],
-        "js": ["content_script.js"],
-        "css": ["content_style.css"]  // Only include this if you have separate CSS
-      }
-    ]
+  "manifest_version": 2,
+  "name": "YouTube Recommendation Filter",
+  "version": "1.4.1",
+  "description": "Filter YouTube recommendations by video age and views",
+  "permissions": [
+    "tabs",
+    "https://www.youtube.com/*"
+  ],
+  "icons": {
+    "48": "icons/icon.png"
+  },
+  "content_scripts": [
+    {
+      "matches": ["https://www.youtube.com/*"],
+      "js": ["content_script.js"],
+      "css": ["content_style.css"]  // Only include this if you have separate CSS
+    }
+  ],
+  "browser_action": {
+    "default_popup": "popup.html", // Set the popup HTML
+    "default_icon": "icons/icon.png" // Icon for the popup
   }
-  
+}
