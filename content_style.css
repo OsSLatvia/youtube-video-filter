@@ -2,19 +2,20 @@
     border-radius: 12px;
 }
 #yt-filter-bar {
-    display: flex;
-    justify-content: space-around;
-    align-items: center;
-    background-color: #f1f1f1;
-    padding: 10px;
-    margin-bottom: 20px;
-    border-bottom: 1px solid #ccc;
-    position: sticky;
-    top: 0;
-    z-index: 1000;
-    border-radius: 12px;
+  display: flex;
+  flex-direction: column;
+  background-color: #f1f1f1;
+  padding: 10px;
+  border-bottom: 1px solid #ccc;
+  position: relative;
+  z-index: 1000;
+  border-radius: 12px;
   }
-  
+
+#yt-filter-bar .checkbox-group {
+    display: flex;
+    align-items: center;
+}
   #yt-filter-bar input {
     padding: 5px;
     margin-left: 10px;
@@ -36,4 +37,21 @@
   #yt-filter-bar button:hover {
     background-color: #d10000;
   }
-  
+
+.custom-filters-button {
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  margin-bottom: 10px; /* Space below the button */
+}
+
+/* Assuming the button needs to inherit styles from the sidebar */
+.custom-filters-button {
+  /* Optional: set defaults here if needed, or inherit from the sidebar styles */
+  background-color: inherit; /* Inherit from parent */
+  color: inherit; /* Inherit from parent */
+  border: inherit; /* Inherit from parent */
+  padding: inherit; /* Inherit from parent */
+  font-size: inherit; /* Inherit from parent */
+  font-weight: inherit; /* Inherit from parent */
+}
