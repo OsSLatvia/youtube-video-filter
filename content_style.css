@@ -1,0 +1,39 @@
+#custom_filters_button {
+    border-radius: 12px;
+}
+#yt-filter-bar {
+    display: flex;
+    justify-content: space-around;
+    align-items: center;
+    background-color: #f1f1f1;
+    padding: 10px;
+    margin-bottom: 20px;
+    border-bottom: 1px solid #ccc;
+    position: sticky;
+    top: 0;
+    z-index: 1000;
+    border-radius: 12px;
+  }
+  
+  #yt-filter-bar input {
+    padding: 5px;
+    margin-left: 10px;
+    border-radius: 12px;
+    margin: 5px;
+    appearance: textfield;
+  }
+  
+  #yt-filter-bar button {
+    padding: 10px;
+    background-color: #ff0000;
+    color: white;
+    border: none;
+    cursor: pointer;
+    border-radius: 12px;
+    margin: 5px;
+  }
+  
+  #yt-filter-bar button:hover {
+    background-color: #d10000;
+  }
+  
