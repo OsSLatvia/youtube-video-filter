@@ -104,56 +104,145 @@ if (window.location.hostname === 'www.youtube.com') {
 
     // Inject the filter bar into the YouTube page
     function injectFilterBar(buttonWrapper) {
-            filterBar = document.createElement('div');
-            filterBar.id = 'yt-filter-bar';
-            filterBar.style.display = 'none';
-
-            filterBar.innerHTML = `
-            <div class="filter-group" id="ageFilterContainer">
-                <label for="ageFilter">Max Age (days):</label>
-                <input type="number" id="ageFilter" min="1" placeholder="e.g., 30" value="${currentMaxAge || ''}">
-            </div>
-            <div class="filter-group">
-                <label for="viewFilter">Min Views:</label>
-                <input type="number" id="viewFilter" min="0" placeholder="e.g., 10000" value="${currentMinViews || ''}">
-            </div>
-            <div class="filter-group">
-                <label for="lengthMinFilter">Min Length (minutes):</label>
-                <input type="number" id="lengthMinFilter" min="0" placeholder="e.g., 5" value="${currentMinLength || ''}">
-            </div>
-            <div class="filter-group">
-                <label for="lengthMaxFilter">Max Length (minutes):</label>
-                <input type="number" id="lengthMaxFilter" min="0" placeholder="e.g., 60" value="${currentMaxLength || ''}">
-            </div>
-            <div class="filter-group checkbox-group">
-                <input type="checkbox" id="filterLivestreams" style="margin-right: 5px;" ${currentLivestreams ? 'checked' : ''}>
-                <label for="filterLivestreams" style="margin-right: 15px;">Remove Livestreams</label>
-            </div>
-            <div class="filter-group checkbox-group">
-                <input type="checkbox" id="filterPlaylists" style="margin-right: 5px;" ${currentPlaylists ? 'checked' : ''}>
-                <label for="filterPlaylists" style="margin-right: 15px;">Remove Playlists</label>
-            </div>
-            <div class="filter-group">
-                <button id="applyFilters">Apply Filters</button>
-                <button id="resetFilters" style="margin-left: 10px;">Reset</button>
-            </div>
-        `;
-
-            buttonWrapper.appendChild(filterBar);
-            if ((currentMaxAge !== null && window.location.pathname == '/') || currentMinViews !== null || currentMinLength !== null || currentMaxLength !== null || currentLivestreams || currentPlaylists) {
-                areFiltersSet = true;
-            }
-            else{
-                areFiltersSet = false;
-            }
-            startObservingDOMChanges();
-            applyFilters();
-            
-
-            document.getElementById('resetFilters').addEventListener('click', resetFilters);
-
-            document.getElementById('applyFilters').addEventListener('click', applyFilters);
+        // Create the filter bar container
+        const filterBar = document.createElement('div');
+        filterBar.id = 'yt-filter-bar';
+        filterBar.style.display = 'none';
+    
+        // Create filter elements
+    
+        // Max Age Filter
+        const ageFilterGroup = document.createElement('div');
+        ageFilterGroup.className = 'filter-group';
+        ageFilterGroup.id = 'ageFilterContainer'
+        const ageLabel = document.createElement('label');
+        ageLabel.setAttribute('for', 'ageFilter');
+        ageLabel.textContent = 'Max Age (days):';
+        const ageInput = document.createElement('input');
+        ageInput.type = 'number';
+        ageInput.id = 'ageFilter';
+        ageInput.min = '1';
+        ageInput.placeholder = 'e.g., 30';
+        ageInput.value = currentMaxAge || '';
+        ageFilterGroup.appendChild(ageLabel);
+        ageFilterGroup.appendChild(ageInput);
+    
+        // Min Views Filter
+        const viewFilterGroup = document.createElement('div');
+        viewFilterGroup.className = 'filter-group';
+        const viewLabel = document.createElement('label');
+        viewLabel.setAttribute('for', 'viewFilter');
+        viewLabel.textContent = 'Min Views:';
+        const viewInput = document.createElement('input');
+        viewInput.type = 'number';
+        viewInput.id = 'viewFilter';
+        viewInput.min = '0';
+        viewInput.placeholder = 'e.g., 10000';
+        viewInput.value = currentMinViews || '';
+        viewFilterGroup.appendChild(viewLabel);
+        viewFilterGroup.appendChild(viewInput);
+    
+        // Min Length Filter
+        const lengthMinFilterGroup = document.createElement('div');
+        lengthMinFilterGroup.className = 'filter-group';
+        const lengthMinLabel = document.createElement('label');
+        lengthMinLabel.setAttribute('for', 'lengthMinFilter');
+        lengthMinLabel.textContent = 'Min Length (minutes):';
+        const lengthMinInput = document.createElement('input');
+        lengthMinInput.type = 'number';
+        lengthMinInput.id = 'lengthMinFilter';
+        lengthMinInput.min = '0';
+        lengthMinInput.placeholder = 'e.g., 5';
+        lengthMinInput.value = currentMinLength || '';
+        lengthMinFilterGroup.appendChild(lengthMinLabel);
+        lengthMinFilterGroup.appendChild(lengthMinInput);
+    
+        // Max Length Filter
+        const lengthMaxFilterGroup = document.createElement('div');
+        lengthMaxFilterGroup.className = 'filter-group';
+        const lengthMaxLabel = document.createElement('label');
+        lengthMaxLabel.setAttribute('for', 'lengthMaxFilter');
+        lengthMaxLabel.textContent = 'Max Length (minutes):';
+        const lengthMaxInput = document.createElement('input');
+        lengthMaxInput.type = 'number';
+        lengthMaxInput.id = 'lengthMaxFilter';
+        lengthMaxInput.min = '0';
+        lengthMaxInput.placeholder = 'e.g., 60';
+        lengthMaxInput.value = currentMaxLength || '';
+        lengthMaxFilterGroup.appendChild(lengthMaxLabel);
+        lengthMaxFilterGroup.appendChild(lengthMaxInput);
+    
+        // Livestreams Checkbox
+        const livestreamsFilterGroup = document.createElement('div');
+        livestreamsFilterGroup.className = 'filter-group checkbox-group';
+        const livestreamsInput = document.createElement('input');
+        livestreamsInput.type = 'checkbox';
+        livestreamsInput.id = 'filterLivestreams';
+        livestreamsInput.style.marginRight = '5px';
+        livestreamsInput.checked = currentLivestreams;
+        const livestreamsLabel = document.createElement('label');
+        livestreamsLabel.setAttribute('for', 'filterLivestreams');
+        livestreamsLabel.style.marginRight = '15px';
+        livestreamsLabel.textContent = 'Remove Livestreams';
+        livestreamsFilterGroup.appendChild(livestreamsInput);
+        livestreamsFilterGroup.appendChild(livestreamsLabel);
+    
+        // Playlists Checkbox
+        const playlistsFilterGroup = document.createElement('div');
+        playlistsFilterGroup.className = 'filter-group checkbox-group';
+        const playlistsInput = document.createElement('input');
+        playlistsInput.type = 'checkbox';
+        playlistsInput.id = 'filterPlaylists';
+        playlistsInput.style.marginRight = '5px';
+        playlistsInput.checked = currentPlaylists;
+        const playlistsLabel = document.createElement('label');
+        playlistsLabel.setAttribute('for', 'filterPlaylists');
+        playlistsLabel.style.marginRight = '15px';
+        playlistsLabel.textContent = 'Remove Playlists';
+        playlistsFilterGroup.appendChild(playlistsInput);
+        playlistsFilterGroup.appendChild(playlistsLabel);
+    
+        // Buttons
+        const buttonGroup = document.createElement('div');
+        buttonGroup.className = 'filter-group';
+        const applyButton = document.createElement('button');
+        applyButton.id = 'applyFilters';
+        applyButton.textContent = 'Apply Filters';
+        const resetButton = document.createElement('button');
+        resetButton.id = 'resetFilters';
+        resetButton.textContent = 'Reset';
+        resetButton.style.marginLeft = '10px';
+        buttonGroup.appendChild(applyButton);
+        buttonGroup.appendChild(resetButton);
+    
+        // Append all filter groups to the filter bar
+        filterBar.appendChild(ageFilterGroup);
+        filterBar.appendChild(viewFilterGroup);
+        filterBar.appendChild(lengthMinFilterGroup);
+        filterBar.appendChild(lengthMaxFilterGroup);
+        filterBar.appendChild(livestreamsFilterGroup);
+        filterBar.appendChild(playlistsFilterGroup);
+        filterBar.appendChild(buttonGroup);
+    
+        buttonWrapper.appendChild(filterBar);
+    
+        // Set the flag for filters
+        areFiltersSet = (
+            (currentMaxAge !== null && window.location.pathname == '/') ||
+            currentMinViews !== null ||
+            currentMinLength !== null ||
+            currentMaxLength !== null ||
+            currentLivestreams ||
+            currentPlaylists
+        );
+    
+        startObservingDOMChanges();
+        applyFilters();
+    
+        resetButton.addEventListener('click', resetFilters);
+        applyButton.addEventListener('click', applyFilters);
     }
+    
 
     function findAllVideos(dom){
         let videoItems = dom.querySelectorAll('#dismissible'); // All video items
