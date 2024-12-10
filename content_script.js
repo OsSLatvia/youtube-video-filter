@@ -1,5 +1,23 @@
 const NEW_BUTTON_TEXT = 'Filters'; // Text for the new button
 const HOME_BUTTON_SELECTOR = 'ytd-guide-section-renderer.style-scope:nth-child(1) > div:nth-child(2) > ytd-guide-entry-renderer:nth-child(1) > a:nth-child(1)'; // Updated selector for the Home button
+const userLanguage = document.documentElement.lang || 'en';
+console.log(userLanguage);
+
+const timeUnits = {
+    en: { 'day': 1, 'week': 7, 'month': 30, 'year': 365 },
+    lv: { 'dien': 1, 'nedēļ': 7, 'mēne': 30, 'gad': 365  }, //use olny word root
+    es: { 'día': 1, 'semana': 7, 'mes': 30, 'año': 365 }, 
+    fr: { 'jour': 1, 'semaine': 7, 'mois': 30, 'an': 365 }, 
+};// Add more languages as needed
+//careful of plural forms when adding new languages, use word roots that match plural forms
+
+const abbreviations = {
+    en: { thousand: 'K', million: 'M' },
+    lv: { thousand: 'tūkst', million: 'milj' }, 
+    es: { thousand: 'K', million: 'M' },
+    fr: { thousand: 'k', million: 'M' }, 
+}; // Add more languages as needed
+
 
 // Ensure the script runs only on YouTube
 if (window.location.hostname === 'www.youtube.com') {
@@ -245,7 +263,8 @@ if (window.location.hostname === 'www.youtube.com') {
     
 
     function findAllVideos(dom){
-        let videoItems = dom.querySelectorAll('#dismissible'); // All video items
+        // let videoItems = dom.querySelectorAll('#dismissible'); // All video items
+        let videoItems = dom.querySelectorAll('ytd-rich-item-renderer'); // All video items
         return videoItems;
     }
     function findAllMutationVideos(mutations) {
@@ -287,11 +306,13 @@ if (window.location.hostname === 'www.youtube.com') {
 
             // Check if it's a livestream
             const liveBadge = item.querySelector('.badge-style-type-live-now-alternate');
-
+            const liveBadgev2 = item.querySelector('.badge-shape-wiz.badge-shape-wiz--thumbnail-live.badge-shape-wiz--thumbnail-badge');
             // Check for "Mix" playlist label
             const playlistLabel = item.querySelector('ytd-thumbnail-overlay-bottom-panel-renderer yt-formatted-string');
+            const playlistLabelv2 = item.querySelector('yt-thumbnail-overlay-badge-view-model');
+
             // Skip this item if it's a livestream and the checkbox is checked
-            if (liveBadge) {
+            if (liveBadge || liveBadgev2) {
                 if (removeLivestreams){
                     const parentContainer = item.closest('ytd-rich-item-renderer');
                     if (parentContainer) {
@@ -309,7 +330,7 @@ if (window.location.hostname === 'www.youtube.com') {
                 continue;
             }
             // Check if the item is a playlist (Mix) and the checkbox is checked
-            if (playlistLabel) {
+            if (playlistLabel || playlistLabelv2) {
                 const parentContainer = item.closest('ytd-rich-item-renderer');
                 if (removePlaylists) {
                     if (parentContainer) {
@@ -350,23 +371,72 @@ if (window.location.hostname === 'www.youtube.com') {
         // lastProcessedIndex = videoItems.length;
     }
 
+    // // Helper function to parse video age (in days)
+    // function parseVideoAge(ageText) {
+    //     // Assuming `ytInitialData` is available in the global scope
+
+    //     const days = { 'day': 1, 'week': 7, 'month': 30, 'year': 365 };
+    //     let match = ageText.match(/(\d+)\s+(day|week|month|year)s?/);
+    //     return match ? parseInt(match[1]) * days[match[2]] : 0;
+    // }
     // Helper function to parse video age (in days)
     function parseVideoAge(ageText) {
-        const days = { 'day': 1, 'week': 7, 'month': 30, 'year': 365 };
-        let match = ageText.match(/(\d+)\s+(day|week|month|year)s?/);
-        return match ? parseInt(match[1]) * days[match[2]] : 0;
+        lang = userLanguage.split('-')[0];;
+        const units = timeUnits[lang];
+        if (!units) {
+            console.error(`Unsupported language: ${lang}, setting language as eng`);
+            lang='en';
+            units = timeUnits[lang];
+        }
+
+        // Build a dynamic regex for the chosen language
+        const unitRegex = Object.keys(units).join('|');
+        const regex = new RegExp(`(\\d+)\\s+(${unitRegex})s?`, 'i');
+
+        let match = ageText.match(regex);
+        // console.log(match);
+        return match ? parseInt(match[1]) * units[match[2].toLowerCase()] : 0;
     }
 
+
+
     // Helper function to parse views
+    // function parseVideoViews(viewsText) {
+    //     if (viewsText.includes('K')) {
+    //         return parseFloat(viewsText.replace('K', '').replace(',', '.')) * 1000;
+    //     } else if (viewsText.includes('M')) {
+    //         return parseFloat(viewsText.replace('M', '').replace(',', '.')) * 1000000;
+    //     } else {
+    //         return parseInt(viewsText.replace(',', '.'));
+    //     }
+    // }
     function parseVideoViews(viewsText) {
-        if (viewsText.includes('K')) {
-            return parseFloat(viewsText.replace('K', '').replace(',', '')) * 1000;
-        } else if (viewsText.includes('M')) {
-            return parseFloat(viewsText.replace('M', '').replace(',', '')) * 1000000;
-        } else {
-            return parseInt(viewsText.replace(',', ''));
+        const lang = userLanguage.split('-')[0];;  // The language of the user, e.g., 'en', 'lv', etc.
+        const units = abbreviations[lang];
+        
+        if (!units) {
+            console.error(`Unsupported language: ${lang}, setting language as eng`);
+            lang='en';
+            units = abbreviations[lang];
+        }
+    
+        // Check for "K" or language-specific abbreviation for thousands
+        if (viewsText.includes(units.thousand)) {
+            return parseFloat(viewsText.replace(units.thousand, '').replace(',', '.')) * 1000;
+        } 
+        
+        // Check for "M" or language-specific abbreviation for millions
+        else if (viewsText.includes(units.million)) {
+            return parseFloat(viewsText.replace(units.million, '').replace(',', '.')) * 1000000;
+        } 
+        
+        // No abbreviation found, just return the number with possible commas replaced
+        else {
+            return parseInt(viewsText.replace(',', '.'));
         }
     }
+
+
 
     // Helper function to parse video length (in minutes)
     function parseVideoLength(lengthText) {
