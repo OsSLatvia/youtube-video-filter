@@ -3,25 +3,72 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>How to Use the Extension</title>
+    <title>Extension Help & Settings</title>
     <link rel="stylesheet" href="popup_style.css"> <!-- Add your CSS file -->
+    <style>
+        body { font-family: Arial, sans-serif; }
+        .tabs { display: flex; cursor: pointer; margin-bottom: 10px; }
+        .tab { flex: 1; text-align: center; padding: 10px; background-color: #ddd; }
+        .tab.active { background-color: #bbb; }
+        .content { display: none; padding: 10px; }
+        .content.active { display: block; }
+        .field { margin-bottom: 10px; }
+    </style>
 </head>
 <body>
-    <div class="tutorial-container">
-        <h1>How to Use the Extension</h1>
-        
-        <h2>Step 1: Open YouTube</h2>
-        <p>Navigate to YouTube where you'll find the new filter options in the sidebar.</p>
-        <img src="images/step1.png" alt="Open YouTube" class="tutorial-image">
-
-        <h2>Step 2: Apply Filters</h2>
-        <p>Click on the "Filters" button to open the filter bar. Set your desired filters and click "Apply Filters" to see the changes.</p>
-        <img src="images/step2.png" alt="Apply Filters" class="tutorial-image">
-
-        <h2>Step 3: Reset Filters</h2>
-        <p>If you want to reset the filters, click the "Reset" button to restore the original view.</p>
-
-        <p>If you have any questions, feel free to reach out!</p>
+    <div class="tabs">
+        <div class="tab active" id="tab-tutorial">Tutorial</div>
+        <div class="tab" id="tab-customization">Customization</div>
     </div>
+
+    <!-- Tab 1: Tutorial -->
+    <div class="content active" id="content-tutorial">
+        <div class="tutorial-container">
+            <h1>How to Use the Extension</h1>
+            
+            <h2>Step 1: Open YouTube</h2>
+            <p>Navigate to YouTube where you'll find the new filter options in the sidebar.</p>
+            <img src="images/step1.png" alt="Open YouTube" class="tutorial-image">
+
+            <h2>Step 2: Apply Filters</h2>
+            <p>Click on the "Filters" button to open the filter bar. Set your desired filters and click "Apply Filters" to see the changes.</p>
+            <img src="images/step2.png" alt="Apply Filters" class="tutorial-image">
+
+            <h2>Step 3: Reset Filters</h2>
+            <p>If you want to reset the filters, click the "Reset" button to restore the original view.</p>
+            <br>
+            <p>Added ability to set custom language settings for different language YT users, users will need to set up values for custom language to work</p>
+            <img src="images/tutorial.png" alt="Setting custom language" class="tutorial-image">
+
+            <p>If you have any questions, feel free to reach out!</p>
+        </div>
+    </div>
+
+    <!-- Tab 2: Customization -->
+    <div class="content" id="content-customization">
+        <h3>Customize Language Settings</h3>
+        <div class="field">
+            <label for="use-custom-lang">
+                <input type="checkbox" id="use-custom-lang"> Use custom language
+            </label>
+        </div>
+        <div class="field">
+            <label>Time Units:</label><br>
+            Day: <input type="text" id="day" placeholder="day"><br>
+            Week: <input type="text" id="week" placeholder="week"><br>
+            Month: <input type="text" id="month" placeholder="month"><br>
+            Year: <input type="text" id="year" placeholder="year">
+        </div>
+        <div class="field">
+            <label>Abbreviations:</label><br>
+            Thousand: <input type="text" id="thousand" placeholder="K"><br>
+            Million: <input type="text" id="million" placeholder="M">
+        </div>
+        <button id="save">Save</button>
+        <button id="reset">Reset to Default</button>
+    </div>
+
+    <script src="popup.js" defer></script>
+    
 </body>
 </html>

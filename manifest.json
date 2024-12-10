@@ -5,7 +5,8 @@
   "description": "Filter YouTube recommendations by video age and views",
   "permissions": [
     "tabs",
-    "https://www.youtube.com/*"
+    "https://www.youtube.com/*",
+    "storage"  // Add this line to request storage permission
   ],
   "icons": {
     "48": "icons/icon.png"

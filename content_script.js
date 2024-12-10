@@ -1,26 +1,71 @@
-const NEW_BUTTON_TEXT = 'Filters'; // Text for the new button
-const HOME_BUTTON_SELECTOR = 'ytd-guide-section-renderer.style-scope:nth-child(1) > div:nth-child(2) > ytd-guide-entry-renderer:nth-child(1) > a:nth-child(1)'; // Updated selector for the Home button
-const userLanguage = document.documentElement.lang || 'en';
-console.log(userLanguage);
-
-const timeUnits = {
-    en: { 'day': 1, 'week': 7, 'month': 30, 'year': 365 },
-    lv: { 'dien': 1, 'nedēļ': 7, 'mēne': 30, 'gad': 365  }, //use olny word root
-    es: { 'día': 1, 'semana': 7, 'mes': 30, 'año': 365 }, 
-    fr: { 'jour': 1, 'semaine': 7, 'mois': 30, 'an': 365 }, 
-};// Add more languages as needed
-//careful of plural forms when adding new languages, use word roots that match plural forms
-
-const abbreviations = {
-    en: { thousand: 'K', million: 'M' },
-    lv: { thousand: 'tūkst', million: 'milj' }, 
-    es: { thousand: 'K', million: 'M' },
-    fr: { thousand: 'k', million: 'M' }, 
-}; // Add more languages as needed
-
-
 // Ensure the script runs only on YouTube
 if (window.location.hostname === 'www.youtube.com') {
+
+    const NEW_BUTTON_TEXT = 'Filters'; // Text for the new button
+    const HOME_BUTTON_SELECTOR = 'ytd-guide-section-renderer.style-scope:nth-child(1) > div:nth-child(2) > ytd-guide-entry-renderer:nth-child(1) > a:nth-child(1)'; // Updated selector for the Home button
+    let userLanguage = document.documentElement.lang || 'en';
+    // console.log(userLanguage);
+    
+    const timeUnits = {
+        en: { 'day': 1, 'week': 7, 'month': 30, 'year': 365 },
+        lv: { 'dien': 1, 'nedēļ': 7, 'mēne': 30, 'gad': 365  }, //use olny word root
+        es: { 'día': 1, 'semana': 7, 'mes': 30, 'año': 365 }, 
+        fr: { 'jour': 1, 'semaine': 7, 'mois': 30, 'an': 365 }, 
+    };// Add more languages as needed
+    //careful of plural forms when adding new languages, use word roots that match plural forms
+    
+    const abbreviations = {
+        en: { thousand: 'K', million: 'M' },
+        lv: { thousand: 'tūkst', million: 'milj' }, 
+        es: { thousand: 'K', million: 'M' },
+        fr: { thousand: 'k', million: 'M' }, 
+    }; // Add more languages as needed
+    
+    
+    async function getSettings() {
+        try {
+            const result = await browser.storage.local.get('settings');
+            const settings = result.settings || {};
+            const useCustomLang = settings.useCustomLang || false;  // Default to false if not set
+            
+            if (useCustomLang) { 
+                // Set userLanguage to 'custom' if the checkbox is checked
+                userLanguage = 'custom';
+                // Add custom language data to timeUnits and abbreviations (replace with custom values as needed)
+                timeUnits.custom = {
+                    [settings.timeUnits.day]: 1,
+                    [settings.timeUnits.week]: 7,
+                    [settings.timeUnits.month]: 30,
+                    [settings.timeUnits.year]: 365
+                };
+                abbreviations.custom = {
+                    thousand: settings.abbreviations.thousand,
+                    million: settings.abbreviations.million 
+                };
+            };
+    
+        } catch (error) {
+            console.error('Error retrieving settings:', error);
+        }
+    }
+
+    
+    (async () => {
+        await getSettings(); // Wait for getSettings to resolve
+        // console.log('Final User Language after settings are loaded:', userLanguage);
+        console.log(timeUnits);
+        console.log(abbreviations);
+
+
+
+    // awaitgetSettings(); // Call the function
+    // console.log(userLanguage);
+    
+
+
+
+
+
     let lastPath = window.location.pathname;
     // Variables to hold current filter values
     let areFiltersSet = false;
@@ -640,4 +685,5 @@ if (window.location.hostname === 'www.youtube.com') {
             domObserver = null; // Clear observer reference
         }
     }
+    })();
 }
