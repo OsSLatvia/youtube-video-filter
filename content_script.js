@@ -320,7 +320,7 @@ if (window.location.hostname === 'www.youtube.com') {
             if (mutation.addedNodes.length) {
                 mutation.addedNodes.forEach(node => {
                     // Ensure the node is an element and has the ID 'dismissible'
-                    if (node.nodeType === 1 && node.id === 'dismissible') {
+                    if (node.nodeType === 1 && node.matches('ytd-rich-item-renderer')) {
                         videoItems.push(node);
                     }
                 });

@@ -1,6 +1,8 @@
+/* Default (Light Mode) */
 #custom_filters_button {
-    border-radius: 12px;
+  border-radius: 12px;
 }
+
 #yt-filter-bar {
   display: flex;
   flex-direction: column;
@@ -10,48 +12,80 @@
   position: relative;
   z-index: 1000;
   border-radius: 12px;
-  }
+  color: #000;
+}
 
 #yt-filter-bar .checkbox-group {
-    display: flex;
-    align-items: center;
+  display: flex;
+  align-items: center;
 }
-  #yt-filter-bar input {
-    padding: 5px;
-    margin-left: 10px;
-    border-radius: 12px;
-    margin: 5px;
-    appearance: textfield;
-  }
-  
-  #yt-filter-bar button {
-    padding: 10px;
-    background-color: #ff0000;
-    color: white;
-    border: none;
-    cursor: pointer;
-    border-radius: 12px;
-    margin: 5px;
-  }
-  
-  #yt-filter-bar button:hover {
-    background-color: #d10000;
-  }
+
+#yt-filter-bar input {
+  padding: 5px;
+  margin-left: 10px;
+  border-radius: 12px;
+  margin: 5px;
+  appearance: textfield;
+  background-color: #fff;
+  color: #000;
+  border: 1px solid #ccc;
+}
+
+#yt-filter-bar button {
+  padding: 10px;
+  background-color: #ff0000;
+  color: white;
+  border: none;
+  cursor: pointer;
+  border-radius: 12px;
+  margin: 5px;
+}
+
+#yt-filter-bar button:hover {
+  background-color: #d10000;
+}
 
 .custom-filters-button {
   cursor: pointer;
   display: flex;
   align-items: center;
-  margin-bottom: 10px; /* Space below the button */
+  margin-bottom: 10px;
+  background-color: inherit;
+  color: inherit;
+  border: inherit;
+  padding: inherit;
+  font-size: inherit;
+  font-weight: inherit;
 }
 
-/* Assuming the button needs to inherit styles from the sidebar */
-.custom-filters-button {
-  /* Optional: set defaults here if needed, or inherit from the sidebar styles */
-  background-color: inherit; /* Inherit from parent */
-  color: inherit; /* Inherit from parent */
-  border: inherit; /* Inherit from parent */
-  padding: inherit; /* Inherit from parent */
-  font-size: inherit; /* Inherit from parent */
-  font-weight: inherit; /* Inherit from parent */
+/* Dark Mode */
+@media (prefers-color-scheme: dark) {
+  #yt-filter-bar {
+      background-color: #222;
+      border-bottom: 1px solid #444;
+      color: #fff;
+  }
+  
+  #yt-filter-bar input {
+      background-color: #333;
+      color: #fff;
+      border: 1px solid #555;
+  }
+  
+  #yt-filter-bar button {
+      background-color: #ff4444;
+  }
+  
+  #yt-filter-bar button:hover {
+      background-color: #d10000;
+  }
+  .custom-filters-button {
+    /* Optional: set defaults here if needed, or inherit from the sidebar styles */
+    background-color: inherit; /* Inherit from parent */
+    color: white; /* Inherit from parent */
+    border: inherit; /* Inherit from parent */
+    padding: inherit; /* Inherit from parent */
+    font-size: inherit; /* Inherit from parent */
+    font-weight: inherit; /* Inherit from parent */
+  }
 }
