@@ -67,6 +67,7 @@ if (window.location.hostname === 'www.youtube.com') {
     let currentMaxLength = null; 
     let currentLivestreams = null;
     let currentPlaylists = null;
+    let currentWatchedVideos = null;
 
     async function isFilterEnabledForPath(path) {
         if (path === '/') {
@@ -111,6 +112,7 @@ if (window.location.hostname === 'www.youtube.com') {
         const storedMaxLength = localStorage.getItem('ytMaxLength');
         const storedLivestreams = localStorage.getItem('ytRemoveLivestreams');
         const storedPlaylists = localStorage.getItem('ytRemovePlaylists');
+        const storedWatchedVideos = localStorage.getItem('ytRemoveWatchedVideos');
         if (storedMaxAge) currentMaxAge = parseInt(storedMaxAge);
         if (storedMinViews) currentMinViews = parseInt(storedMinViews);
         if (storedMinLength) currentMinLength = parseFloat(storedMinLength);
@@ -119,6 +121,7 @@ if (window.location.hostname === 'www.youtube.com') {
         // Set the currentLivestreams and currentPlaylists only if stored as 'true'
         currentLivestreams = storedLivestreams === 'true';  // Default to false if not stored
         currentPlaylists = storedPlaylists === 'true';  // Default to false if not stored
+        currentWatchedVideos = storedWatchedVideos === 'true';  // Default to false if not stored
     }
 
     function saveFilters() {
@@ -128,6 +131,7 @@ if (window.location.hostname === 'www.youtube.com') {
         localStorage.setItem('ytMaxLength', currentMaxLength);
         localStorage.setItem('ytRemoveLivestreams', currentLivestreams);
         localStorage.setItem('ytRemovePlaylists', currentPlaylists);
+        localStorage.setItem('ytRemoveWatchedVideos', currentWatchedVideos);
     }
     
     let filtersButtonWrapper = null;
@@ -297,6 +301,21 @@ function injectFiltersButton() {
         playlistsLabel.textContent = 'Remove Playlists';
         playlistsFilterGroup.appendChild(playlistsInput);
         playlistsFilterGroup.appendChild(playlistsLabel);
+
+        // Watched Videos Checkbox
+        const watchedVideosFilterGroup = document.createElement('div');
+        watchedVideosFilterGroup.className = 'filter-group checkbox-group';
+        const watchedVideosInput = document.createElement('input');
+        watchedVideosInput.type = 'checkbox';
+        watchedVideosInput.id = 'filterWatchedVideos';
+        watchedVideosInput.style.marginRight = '5px';
+        watchedVideosInput.checked = currentWatchedVideos;
+        const watchedVideosLabel = document.createElement('label');
+        watchedVideosLabel.setAttribute('for', 'filterWatchedVideos');
+        watchedVideosLabel.style.marginRight = '15px';
+        watchedVideosLabel.textContent = 'Remove Watched Videos';
+        watchedVideosFilterGroup.appendChild(watchedVideosInput);
+        watchedVideosFilterGroup.appendChild(watchedVideosLabel);
     
         // Buttons
         const buttonGroup = document.createElement('div');
@@ -326,6 +345,7 @@ function injectFiltersButton() {
         filterBar.appendChild(lengthMaxFilterGroup);
         filterBar.appendChild(livestreamsFilterGroup);
         filterBar.appendChild(playlistsFilterGroup);
+        filterBar.appendChild(watchedVideosFilterGroup)
         filterBar.appendChild(buttonGroup);
     
         buttonWrapper.appendChild(filterBar);
@@ -337,7 +357,8 @@ function injectFiltersButton() {
             currentMinLength !== null ||
             currentMaxLength !== null ||
             currentLivestreams ||
-            currentPlaylists
+            currentPlaylists ||
+            currentWatchedVideos
         );
         applyFilters();
         startObservingDOMChanges();
@@ -388,9 +409,9 @@ function injectFiltersButton() {
     }
 
 
-    function checkAndCallFilters(videos, currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists){
+    function checkAndCallFilters(videos, currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists, currentWatchedVideos){
         let allVideos = videos
-        filterRecommendations(allVideos, currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists);
+        filterRecommendations(allVideos, currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists, currentWatchedVideos);
 
     }
     
@@ -414,7 +435,7 @@ function injectFiltersButton() {
         });
     }
     // Function to filter recommendations based on age, views, and video length
-    async function filterRecommendations(videoItems, maxAge, minViews, minLength, maxLength, removeLivestreams, removePlaylists) {
+    async function filterRecommendations(videoItems, maxAge, minViews, minLength, maxLength, removeLivestreams, removePlaylists, removeWatchedVideos) {
         
         // let videoItems = findAllVideos();
         let hiddenVideos=0;
@@ -445,6 +466,16 @@ function injectFiltersButton() {
                         shownVideos= shownVideos + showElement(parentContainer);
                         // parentContainer.style.display = ''; // Hide livestreams
                     }
+                }
+                continue;
+            }
+
+            // Check if video has been watched
+            const progressBar = item.querySelector('ytd-thumbnail-overlay-resume-playback-renderer');
+            if (progressBar && removeWatchedVideos) {
+                const parentContainer = item.closest(selector);
+                if (parentContainer) {
+                    hiddenVideos = hiddenVideos + hideElement(parentContainer);
                 }
                 continue;
             }
@@ -618,7 +649,8 @@ function injectFiltersButton() {
                         currentMinLength !== null ||
                         currentMaxLength !== null ||
                         currentLivestreams ||
-                        currentPlaylists
+                        currentPlaylists ||
+                        currentWatchedVideos
                     );
                 }
             }
@@ -650,7 +682,8 @@ function injectFiltersButton() {
                     currentMinLength,
                     currentMaxLength,
                     currentLivestreams,
-                    currentPlaylists
+                    currentPlaylists,
+                    currentWatchedVideos
                 );
             }
         });
@@ -689,9 +722,11 @@ function injectFiltersButton() {
         }
         const storedLivestreams = localStorage.getItem('ytRemoveLivestreams');
         const storedPlaylists = localStorage.getItem('ytRemovePlaylists');
+        const storedWatchedVideos = localStorage.getItem('ytRemoveWatchedVideos');
 
         document.getElementById('filterLivestreams').checked = (storedLivestreams === 'true');
         document.getElementById('filterPlaylists').checked = (storedPlaylists === 'true');
+        document.getElementById('filterWatchedVideos').checked = (storedWatchedVideos === 'true');
 
     }
     // Function to reset all filters
@@ -708,16 +743,18 @@ function injectFiltersButton() {
         document.getElementById('lengthMaxFilter').value = '';
         document.getElementById('filterLivestreams').checked = false;
         document.getElementById('filterPlaylists').checked = false;
+        document.getElementById('filterWatchedVideos').checked = false;
         currentMaxAge = null;
         currentMinViews = null;
         currentMinLength = null;
         currentMaxLength = null;
         currentLivestreams = null;
         currentPlaylists = null;
+        currentWatchedVideos = null;
         // resetProcessedIndex();
         // lastProcessedIndex = 0; // Reset the counter
         areFiltersSet = false;
-        checkAndCallFilters(findAllVideos(document), currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists);
+        checkAndCallFilters(findAllVideos(document), currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists, currentWatchedVideos);
     }
 
     function applyOnceFilters(){
@@ -736,6 +773,7 @@ function injectFiltersButton() {
     let maxLength = currentMaxLength ?? null;
     let filterLivestreams = currentLivestreams ?? false;
     let filterPlaylists = currentPlaylists ?? false;
+    let filterWatchedVideos = currentWatchedVideos ?? false;
 
     // try to override from DOM if elements exist
     const ageEl = document.getElementById('ageFilter');
@@ -755,12 +793,17 @@ function injectFiltersButton() {
 
     const playlistEl = document.getElementById('filterPlaylists');
     if (playlistEl) filterPlaylists = playlistEl.checked;
+
+    const watchedVideosEl = document.getElementById('filterWatchedVideos');
+    if (watchedVideosEl) filterWatchedVideos = watchedVideosEl.checked;
+
         currentMaxAge = maxAge ? parseInt(maxAge) : null;
         currentMinViews = minViews ? parseInt(minViews) : null;
         currentMinLength = minLength ? parseFloat(minLength) : null;
         currentMaxLength = maxLength ? parseFloat(maxLength) : null;
         currentLivestreams = filterLivestreams;
         currentPlaylists = filterPlaylists;
+        currentWatchedVideos = filterWatchedVideos;
 
         if (shouldFiltersSave) {
             console.log("saving filters")
@@ -769,11 +812,11 @@ function injectFiltersButton() {
         
 
         // Check if filters are set
-        areFiltersSet = (currentMaxAge !== null && allowedPath(window.location.pathname)) || currentMinViews !== null || currentMinLength !== null || currentMaxLength !== null || currentLivestreams || currentPlaylists;
+        areFiltersSet = (currentMaxAge !== null && allowedPath(window.location.pathname)) || currentMinViews !== null || currentMinLength !== null || currentMaxLength !== null || currentLivestreams || currentPlaylists || currentWatchedVideos;
         // startObservingDOMChanges(); // Start observing changes
 
         // Call filter recommendations function here if needed
-        checkAndCallFilters(findAllVideos(document), currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists);
+        checkAndCallFilters(findAllVideos(document), currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists, currentWatchedVideos);
     }
     function hideElement(element) {
         if (element) {
