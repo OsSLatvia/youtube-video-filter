@@ -5,8 +5,6 @@ if (window.location.hostname === 'www.youtube.com') {
     const HOME_BUTTON_SELECTOR = 'ytd-guide-section-renderer.style-scope:nth-child(1) > div:nth-child(2) > ytd-guide-entry-renderer:nth-child(1) > a:nth-child(1)'; // Updated selector for the Home button
     let userLanguage = document.documentElement.lang || 'en';
     let generalSettings = {};
-    // console.log(userLanguage);
-    
     const timeUnits = {
         en: { 'day': 1, 'week': 7, 'month': 30, 'year': 365 },
         lv: { 'dien': 1, 'nedēļ': 7, 'mēne': 30, 'gad': 365  }, //use olny word root
@@ -52,7 +50,7 @@ if (window.location.hostname === 'www.youtube.com') {
     async function loadGeneralSettings() {
         const result = await browser.storage.local.get('generalSettings');
         generalSettings = result.generalSettings || {};
-
+        console.log("generalSettings: ", generalSettings.homepage);
     }
     
     (async () => {
@@ -70,17 +68,17 @@ if (window.location.hostname === 'www.youtube.com') {
     let currentLivestreams = null;
     let currentPlaylists = null;
 
-    function isFilterEnabledForPath(path) {
+    async function isFilterEnabledForPath(path) {
         if (path === '/') {
-            return generalSettings.homepage;
+            return await generalSettings.homepage;
         } else if (path.startsWith('/results')) {
-            return generalSettings.videoSearch;
+            return await generalSettings.videoSearch;
         } else if (path.startsWith('/feed/subscriptions')) {
-            return generalSettings.subscriptions;
+            return await generalSettings.subscriptions;
         } else if (path.startsWith('/@')) {
-            return generalSettings.channel;
+            return await generalSettings.channel;
         } else if (path.startsWith('/watch')) {
-            return generalSettings.sidebarRecommendations;
+            return await generalSettings.sidebarRecommendations;
         }
         // Default to false if not an expected view
         return false;
@@ -370,7 +368,6 @@ function injectFiltersButton() {
     function findAllVideos(dom) {
         const selector = getVideoSelectorByPath();
         videos=dom.querySelectorAll(selector);
-        // console.log("selector: ", selector, " vid: ",videos.length)
         return videos;
     }
     
@@ -387,7 +384,6 @@ function injectFiltersButton() {
                 });
             }
         });
-        // console.log("selector: ", selector, "mut vid: ", videos.videoItems)
         return videoItems;
     }
 
@@ -423,16 +419,10 @@ function injectFiltersButton() {
         // let videoItems = findAllVideos();
         let hiddenVideos=0;
         let shownVideos=0;
-        // console.log("videos count: ", videoItems.length);
         // Only process videos starting from the last processed index
         for (let i = 0; i < videoItems.length; i++) {
             const item = videoItems[i];
-            const metadataLine = item.querySelector('#metadata-line');
-            const viewsElement = metadataLine ? metadataLine.querySelector('span.inline-metadata-item:nth-of-type(1)') : null;
-            const dateElement = metadataLine ? metadataLine.querySelector('span.inline-metadata-item:nth-of-type(2)') : null;
-            const timeElement = await waitForElementInsideNode(item, 'ytd-thumbnail-overlay-time-status-renderer #text');
-           
-            // console.log("video: ", i , " viewsElem: ", viewsElement, " dateElement: ", dateElement, " timeElement: ", timeElement, )
+
             // Check if it's a livestream
             const liveBadge = item.querySelector('.badge-style-type-live-now-alternate');
             const liveBadgev2 = item.querySelector('.badge-shape-wiz.badge-shape-wiz--thumbnail-live.badge-shape-wiz--thumbnail-badge');
@@ -458,6 +448,15 @@ function injectFiltersButton() {
                 }
                 continue;
             }
+
+            const metadataLine = item.querySelector('#metadata-line');
+            const viewsElement = metadataLine ? metadataLine.querySelector('span.inline-metadata-item:nth-of-type(1)') : null;
+            const dateElement = metadataLine ? metadataLine.querySelector('span.inline-metadata-item:nth-of-type(2)') : null;
+            if (viewsElement && dateElement) {
+                timeElement = await waitForElementInsideNode(item, 'ytd-thumbnail-overlay-time-status-renderer #text');
+            }
+
+
             // Check if the item is a playlist (Mix) and the checkbox is checked
             if (playlistLabel || playlistLabelv2) {
                 const parentContainer = item.closest(selector);
@@ -474,19 +473,15 @@ function injectFiltersButton() {
                 }
                 continue; // Skip further processing for playlists
             }
-            console.log("video")
-            console.log("views: ", viewsElement)
-            console.log("dateElement: ", dateElement)
-            console.log("timeElement: ", timeElement)
-            const parentContainer = item.closest(selector);
-            console.log("parentContainer?: ",parentContainer);
+            // const parentContainer = item.closest(selector);
+            // console.log("parentContainer?: ",parentContainer);
             if (viewsElement && dateElement && timeElement) {
                 const videoAgeInDays = parseVideoAge(dateElement.textContent);
                 const videoViews = parseVideoViews(viewsElement.textContent);
                 const videoLengthInMinutes = parseVideoLength(timeElement.textContent);
                 const parentContainer = item.closest(selector);
-                console.log("video: ", i , " viewsElem: ", videoViews, " dateElement: ", videoAgeInDays, " timeElement: ", videoLengthInMinutes, )
-                console.log("parentContainer?: ",parentContainer);
+                // console.log("video: ", i , " viewsElem: ", videoViews, " dateElement: ", videoAgeInDays, " timeElement: ", videoLengthInMinutes, )
+                // console.log("parentContainer?: ",parentContainer);
                 if (parentContainer) {
                     if ((maxAge && videoAgeInDays > maxAge) || 
                         (minViews && videoViews < minViews) || 
@@ -730,7 +725,7 @@ function injectFiltersButton() {
     }
     // Function to apply filters
     function applyFilters(shouldFiltersSave = true) {
-        // console.log("shouldFiltersSave ",shouldFiltersSave)
+        console.log("shouldFiltersSave ",shouldFiltersSave)
         // resetProcessedIndex() 
         // lastProcessedIndex = 0; // Reset the counter
 
@@ -768,6 +763,7 @@ function injectFiltersButton() {
         currentPlaylists = filterPlaylists;
 
         if (shouldFiltersSave) {
+            console.log("saving filters")
             saveFilters(); // Save filter options to localStorage only on home tab
         }
         
