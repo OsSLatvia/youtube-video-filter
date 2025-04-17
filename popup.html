@@ -18,7 +18,8 @@
 <body>
     <div class="tabs">
         <div class="tab active" id="tab-tutorial">Tutorial</div>
-        <div class="tab" id="tab-customization">Customization</div>
+        <div class="tab" id="tab-customization">Language customization</div>
+        <div class="tab" id="tab-settings">Settings</div>
     </div>
 
     <!-- Tab 1: Tutorial -->
@@ -67,6 +68,31 @@
         <button id="save">Save</button>
         <button id="reset">Reset to Default</button>
     </div>
+        <!-- Tab 3: Settings -->
+    <div class="content" id="content-settings">
+        <h3>Extension Settings</h3>
+        <div class="field">
+            <p>Check where to apply saved filters </p>
+            <p>Some views wont use filter field "age", because if videos already ordered by age like in subscribtion tab and channel view, filter will keep removing all videos and loading new ones</p>
+        </div>
+        <div class="field">
+            <label><input type="checkbox" id="setting-homepage"> Homepage view</label>
+        </div>
+        <div class="field">
+            <label><input type="checkbox" id="setting-video-search"> Video search view</label>
+        </div>
+        <div class="field">
+            <label><input type="checkbox" id="setting-subscriptions"> Subscriptions view</label>
+        </div>
+        <div class="field">
+            <label><input type="checkbox" id="setting-channel"> Channel view</label>
+        </div>
+        <div class="field">
+            <label><input type="checkbox" id="setting-sidebar-recomendations"> Sidebar recomendations (on already opened videos)</label>
+        </div>
+        <button id="save-settings">Save Settings</button>
+    </div>
+    
 
     <script src="popup.js" defer></script>
     

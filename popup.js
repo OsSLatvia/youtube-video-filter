@@ -1,6 +1,6 @@
 // Default settings
-const defaultSettings = {
-    useCustomLang: false,  // This will store the custom language preference (true or false)
+const defaultLangSettings = {
+    useCustomLang: false,
     timeUnits: {
         day: 'day',
         week: 'week',
@@ -13,7 +13,16 @@ const defaultSettings = {
     },
 };
 
-// DOM Elements
+const defaultGeneralSettings = {
+    homepage: true,
+    videoSearch: false,
+    subscriptions: false,
+    channel: false,
+    sidebarRecommendations: true,
+};
+
+
+// DOM Elements for Lang Settings
 const useCustomLangCheckbox = document.getElementById('use-custom-lang');
 const dayInput = document.getElementById('day');
 const weekInput = document.getElementById('week');
@@ -21,79 +30,123 @@ const monthInput = document.getElementById('month');
 const yearInput = document.getElementById('year');
 const thousandInput = document.getElementById('thousand');
 const millionInput = document.getElementById('million');
-const saveButton = document.getElementById('save');
-const resetButton = document.getElementById('reset');
+const saveLangButton = document.getElementById('save');
+const resetLangButton = document.getElementById('reset');
 
-// Load settings from browser.storage.local
-async function loadSettings() {
+// DOM Elements for General Settings (Tab 3)
+const homepageCheckbox = document.getElementById('setting-homepage');
+const videoSearchCheckbox = document.getElementById('setting-video-search');
+const subscriptionsCheckbox = document.getElementById('setting-subscriptions');
+const channelCheckbox = document.getElementById('setting-channel');
+const sidebarRecommendationsCheckbox = document.getElementById('setting-sidebar-recomendations');
+const saveGeneralButton = document.getElementById('save-settings');
+
+// Load Lang Settings
+async function loadLangSettings() {
     try {
-        const result = await browser.storage.local.get('settings');
-        const storedSettings = result.settings || defaultSettings;
+        const result = await browser.storage.local.get('langSettings');
+        const settings = result.langSettings || defaultLangSettings;
 
-        // Populate fields with stored or default values
-        useCustomLangCheckbox.checked = storedSettings.useCustomLang;
-        dayInput.value = storedSettings.timeUnits.day;
-        weekInput.value = storedSettings.timeUnits.week;
-        monthInput.value = storedSettings.timeUnits.month;
-        yearInput.value = storedSettings.timeUnits.year;
-        thousandInput.value = storedSettings.abbreviations.thousand;
-        millionInput.value = storedSettings.abbreviations.million;
+        useCustomLangCheckbox.checked = settings.useCustomLang;
+        dayInput.value = settings.timeUnits.day;
+        weekInput.value = settings.timeUnits.week;
+        monthInput.value = settings.timeUnits.month;
+        yearInput.value = settings.timeUnits.year;
+        thousandInput.value = settings.abbreviations.thousand;
+        millionInput.value = settings.abbreviations.million;
     } catch (error) {
-        console.error('Error loading settings:', error);
+        console.error('Error loading lang settings:', error);
     }
 }
 
-// Save settings to browser.storage.local
-async function saveSettings() {
+// Save Lang Settings
+async function saveLangSettings() {
     const settings = {
         useCustomLang: useCustomLangCheckbox.checked,
         timeUnits: {
-            day: dayInput.value || defaultSettings.timeUnits.day,
-            week: weekInput.value || defaultSettings.timeUnits.week,
-            month: monthInput.value || defaultSettings.timeUnits.month,
-            year: yearInput.value || defaultSettings.timeUnits.year,
+            day: dayInput.value || defaultLangSettings.timeUnits.day,
+            week: weekInput.value || defaultLangSettings.timeUnits.week,
+            month: monthInput.value || defaultLangSettings.timeUnits.month,
+            year: yearInput.value || defaultLangSettings.timeUnits.year,
         },
         abbreviations: {
-            thousand: thousandInput.value || defaultSettings.abbreviations.thousand,
-            million: millionInput.value || defaultSettings.abbreviations.million,
+            thousand: thousandInput.value || defaultLangSettings.abbreviations.thousand,
+            million: millionInput.value || defaultLangSettings.abbreviations.million,
         },
     };
 
     try {
-        await browser.storage.local.set({ settings: settings });
-        console.log('Settings saved!');
+        await browser.storage.local.set({ langSettings: settings });
+        console.log('Lang settings saved!');
     } catch (error) {
-        console.error('Error saving settings:', error);
+        console.error('Error saving lang settings:', error);
     }
 }
 
-// Reset settings to default
-async function resetSettings() {
+// Reset Lang Settings
+async function resetLangSettings() {
     try {
-        await browser.storage.local.set({ settings: defaultSettings });
-        loadSettings(); // Reload UI with default settings
-        console.log('Settings reset to default!');
+        await browser.storage.local.set({ langSettings: defaultLangSettings });
+        loadLangSettings();
+        console.log('Lang settings reset to default!');
     } catch (error) {
-        console.error('Error resetting settings:', error);
+        console.error('Error resetting lang settings:', error);
+    }
+}
+
+// Load General Settings from storage
+async function loadGeneralSettings() {
+    try {
+        const result = await browser.storage.local.get('generalSettings');
+        const settings = result.generalSettings || defaultGeneralSettings;
+
+        homepageCheckbox.checked = settings.homepage;
+        videoSearchCheckbox.checked = settings.videoSearch;
+        subscriptionsCheckbox.checked = settings.subscriptions;
+        channelCheckbox.checked = settings.channel;
+        sidebarRecommendationsCheckbox.checked = settings.sidebarRecommendations;
+    } catch (error) {
+        console.error('Error loading general settings:', error);
+    }
+}
+
+// Save General Settings to storage
+async function saveGeneralSettings() {
+    const settings = {
+        homepage: homepageCheckbox.checked,
+        videoSearch: videoSearchCheckbox.checked,
+        subscriptions: subscriptionsCheckbox.checked,
+        channel: channelCheckbox.checked,
+        sidebarRecommendations: sidebarRecommendationsCheckbox.checked,
+    };
+
+    try {
+        await browser.storage.local.set({ generalSettings: settings });
+        console.log('General settings saved!');
+    } catch (error) {
+        console.error('Error saving general settings:', error);
     }
 }
 
 // Event Listeners
-document.addEventListener('DOMContentLoaded', loadSettings); // Load settings when DOM is loaded
-saveButton.addEventListener('click', saveSettings);
-resetButton.addEventListener('click', resetSettings);
+document.addEventListener('DOMContentLoaded', () => {
+    loadLangSettings();
+    loadGeneralSettings();
+});
 
-// Tab navigation logic (if needed)
-const tabs = document.querySelectorAll('.tab'); // Select all tab elements
-const contents = document.querySelectorAll('.content'); // Select all content sections
+saveLangButton.addEventListener('click', saveLangSettings);
+resetLangButton.addEventListener('click', resetLangSettings);
+saveGeneralButton.addEventListener('click', saveGeneralSettings);
+
+// Tab switching
+const tabs = document.querySelectorAll('.tab');
+const contents = document.querySelectorAll('.content');
 
 tabs.forEach((tab, index) => {
     tab.addEventListener('click', () => {
-        // Deactivate all tabs and hide all contents
         tabs.forEach(t => t.classList.remove('active'));
         contents.forEach(c => c.classList.remove('active'));
 
-        // Activate the clicked tab and corresponding content
         tab.classList.add('active');
         contents[index].classList.add('active');
     });
