@@ -616,7 +616,7 @@ function injectFiltersButton() {
         let maxAgeField = document.getElementById('ageFilterContainer');
         let currentPath = "";
     
-        function handlePathChange(newPath) {
+        async function handlePathChange(newPath) {
             if (newPath !== currentPath) {
                 if (newPath=='/' || newPath.startsWith('/watch') || newPath.startsWith('/results')){
                     showElement(maxAgeField);
@@ -625,8 +625,7 @@ function injectFiltersButton() {
                     hideElement(maxAgeField);
                 }
                 currentPath = newPath;
-    
-                if (!isFilterEnabledForPath(newPath)){
+                if (!(await isFilterEnabledForPath(newPath))){
                     loadEmptyFilters();
                 } else {
                     loadStoredFilters();
