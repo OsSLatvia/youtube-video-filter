@@ -50,7 +50,6 @@ if (window.location.hostname === 'www.youtube.com') {
     async function loadGeneralSettings() {
         const result = await browser.storage.local.get('generalSettings');
         generalSettings = result.generalSettings || {};
-        console.log("generalSettings: ", generalSettings.homepage);
     }
     
     (async () => {
@@ -84,8 +83,7 @@ if (window.location.hostname === 'www.youtube.com') {
         // Default to false if not an expected view
         return false;
     }
-
-    if (isFilterEnabledForPath(window.location.pathname)) {
+    if (await isFilterEnabledForPath(lastPath)) {
         loadStoredFilters();
     }
     // Immediately call initYouTubeFilter
@@ -105,7 +103,6 @@ if (window.location.hostname === 'www.youtube.com') {
     }
 
     function loadStoredFilters() {
-        
         const storedMaxAge = localStorage.getItem('ytMaxAge');
         const storedMinViews = localStorage.getItem('ytMinViews');
         const storedMinLength = localStorage.getItem('ytMinLength');
@@ -360,7 +357,7 @@ function injectFiltersButton() {
             currentPlaylists ||
             currentWatchedVideos
         );
-        applyFilters();
+        applyOnceFilters();
         startObservingDOMChanges();
         
     
@@ -494,25 +491,19 @@ function injectFiltersButton() {
                 if (removePlaylists) {
                     if (parentContainer) {
                         hiddenVideos= hiddenVideos + hideElement(parentContainer);
-                        // parentContainer.style.display = 'none'; // Hide playlists
                     }
                 } else {
                     if (parentContainer) {
                         shownVideos= shownVideos + showElement(parentContainer);
-                        // parentContainer.style.display = ''; // Show playlists
                     }
                 }
                 continue; // Skip further processing for playlists
             }
-            // const parentContainer = item.closest(selector);
-            // console.log("parentContainer?: ",parentContainer);
             if (viewsElement && dateElement && timeElement) {
                 const videoAgeInDays = parseVideoAge(dateElement.textContent);
                 const videoViews = parseVideoViews(viewsElement.textContent);
                 const videoLengthInMinutes = parseVideoLength(timeElement.textContent);
                 const parentContainer = item.closest(selector);
-                // console.log("video: ", i , " viewsElem: ", videoViews, " dateElement: ", videoAgeInDays, " timeElement: ", videoLengthInMinutes, )
-                // console.log("parentContainer?: ",parentContainer);
                 if (parentContainer) {
                     if ((maxAge && videoAgeInDays > maxAge) || 
                         (minViews && videoViews < minViews) || 
@@ -556,7 +547,6 @@ function injectFiltersButton() {
         const regex = new RegExp(`(\\d+)\\s+(${unitRegex})s?`, 'i');
 
         let match = ageText.match(regex);
-        // console.log(match);
         return match ? parseInt(match[1]) * units[match[2].toLowerCase()] : 0;
     }
 
@@ -634,7 +624,6 @@ function injectFiltersButton() {
                 else{
                     hideElement(maxAgeField);
                 }
-                // console.log("path: ", window.location.pathname, "  filters: ",isFilterEnabledForPath(newPath));
                 currentPath = newPath;
     
                 if (!isFilterEnabledForPath(newPath)){
@@ -642,7 +631,7 @@ function injectFiltersButton() {
                 } else {
                     loadStoredFilters();
                     setInputFieldsToStoredValues();
-                    applyFilters();
+                    applyOnceFilters();
                     areFiltersSet = (
                         (currentMaxAge !== null && allowedPath(newPath)) ||
                         currentMinViews !== null ||
@@ -762,62 +751,58 @@ function injectFiltersButton() {
     }
     // Function to apply filters
     function applyFilters(shouldFiltersSave = true) {
-        console.log("shouldFiltersSave ",shouldFiltersSave)
-        // resetProcessedIndex() 
-        // lastProcessedIndex = 0; // Reset the counter
 
-    // fallback to current stored values
-    let maxAge = currentMaxAge ?? null;
-    let minViews = currentMinViews ?? null;
-    let minLength = currentMinLength ?? null;
-    let maxLength = currentMaxLength ?? null;
-    let filterLivestreams = currentLivestreams ?? false;
-    let filterPlaylists = currentPlaylists ?? false;
-    let filterWatchedVideos = currentWatchedVideos ?? false;
+        // fallback to current stored values
+        let maxAge = currentMaxAge ?? null;
+        let minViews = currentMinViews ?? null;
+        let minLength = currentMinLength ?? null;
+        let maxLength = currentMaxLength ?? null;
+        let filterLivestreams = currentLivestreams ?? false;
+        let filterPlaylists = currentPlaylists ?? false;
+        let filterWatchedVideos = currentWatchedVideos ?? false;
 
-    // try to override from DOM if elements exist
-    const ageEl = document.getElementById('ageFilter');
-    if (ageEl) maxAge = parseInt(ageEl.value) || null;
+        // try to override from DOM if elements exist
+        const ageEl = document.getElementById('ageFilter');
+        if (ageEl) maxAge = parseInt(ageEl.value) || null;
 
-    const viewsEl = document.getElementById('viewFilter');
-    if (viewsEl) minViews = parseInt(viewsEl.value) || null;
+        const viewsEl = document.getElementById('viewFilter');
+        if (viewsEl) minViews = parseInt(viewsEl.value) || null;
 
-    const minLenEl = document.getElementById('lengthMinFilter');
-    if (minLenEl) minLength = parseFloat(minLenEl.value) || null;
+        const minLenEl = document.getElementById('lengthMinFilter');
+        if (minLenEl) minLength = parseFloat(minLenEl.value) || null;
 
-    const maxLenEl = document.getElementById('lengthMaxFilter');
-    if (maxLenEl) maxLength = parseFloat(maxLenEl.value) || null;
+        const maxLenEl = document.getElementById('lengthMaxFilter');
+        if (maxLenEl) maxLength = parseFloat(maxLenEl.value) || null;
 
-    const liveEl = document.getElementById('filterLivestreams');
-    if (liveEl) filterLivestreams = liveEl.checked;
+        const liveEl = document.getElementById('filterLivestreams');
+        if (liveEl) filterLivestreams = liveEl.checked;
 
-    const playlistEl = document.getElementById('filterPlaylists');
-    if (playlistEl) filterPlaylists = playlistEl.checked;
+        const playlistEl = document.getElementById('filterPlaylists');
+        if (playlistEl) filterPlaylists = playlistEl.checked;
 
-    const watchedVideosEl = document.getElementById('filterWatchedVideos');
-    if (watchedVideosEl) filterWatchedVideos = watchedVideosEl.checked;
+        const watchedVideosEl = document.getElementById('filterWatchedVideos');
+        if (watchedVideosEl) filterWatchedVideos = watchedVideosEl.checked;
 
-        currentMaxAge = maxAge ? parseInt(maxAge) : null;
-        currentMinViews = minViews ? parseInt(minViews) : null;
-        currentMinLength = minLength ? parseFloat(minLength) : null;
-        currentMaxLength = maxLength ? parseFloat(maxLength) : null;
-        currentLivestreams = filterLivestreams;
-        currentPlaylists = filterPlaylists;
-        currentWatchedVideos = filterWatchedVideos;
+            currentMaxAge = maxAge ? parseInt(maxAge) : null;
+            currentMinViews = minViews ? parseInt(minViews) : null;
+            currentMinLength = minLength ? parseFloat(minLength) : null;
+            currentMaxLength = maxLength ? parseFloat(maxLength) : null;
+            currentLivestreams = filterLivestreams;
+            currentPlaylists = filterPlaylists;
+            currentWatchedVideos = filterWatchedVideos;
 
-        if (shouldFiltersSave) {
-            console.log("saving filters")
-            saveFilters(); // Save filter options to localStorage only on home tab
+            if (shouldFiltersSave) {
+                saveFilters(); // Save filter options to localStorage only if save filters button clicked
+            }
+            
+
+            // Check if filters are set
+            areFiltersSet = (currentMaxAge !== null && allowedPath(window.location.pathname)) || currentMinViews !== null || currentMinLength !== null || currentMaxLength !== null || currentLivestreams || currentPlaylists || currentWatchedVideos;
+            // startObservingDOMChanges(); // Start observing changes
+
+            // Call filter recommendations function here if needed
+            checkAndCallFilters(findAllVideos(document), currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists, currentWatchedVideos);
         }
-        
-
-        // Check if filters are set
-        areFiltersSet = (currentMaxAge !== null && allowedPath(window.location.pathname)) || currentMinViews !== null || currentMinLength !== null || currentMaxLength !== null || currentLivestreams || currentPlaylists || currentWatchedVideos;
-        // startObservingDOMChanges(); // Start observing changes
-
-        // Call filter recommendations function here if needed
-        checkAndCallFilters(findAllVideos(document), currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists, currentWatchedVideos);
-    }
     function hideElement(element) {
         if (element) {
             element.style.display = 'none';

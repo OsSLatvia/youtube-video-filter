@@ -77,7 +77,6 @@ async function saveLangSettings() {
 
     try {
         await browser.storage.local.set({ langSettings: settings });
-        console.log('Lang settings saved!');
     } catch (error) {
         console.error('Error saving lang settings:', error);
     }
@@ -88,7 +87,6 @@ async function resetLangSettings() {
     try {
         await browser.storage.local.set({ langSettings: defaultLangSettings });
         loadLangSettings();
-        console.log('Lang settings reset to default!');
     } catch (error) {
         console.error('Error resetting lang settings:', error);
     }
@@ -122,7 +120,6 @@ async function saveGeneralSettings() {
 
     try {
         await browser.storage.local.set({ generalSettings: settings });
-        console.log('General settings saved!');
     } catch (error) {
         console.error('Error saving general settings:', error);
     }
