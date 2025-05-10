@@ -515,7 +515,7 @@ function injectFiltersButton() {
                 
                 const blacklisted = words.some((x) => blacklist_set.has(x));
 
-                console.log(blacklist, blacklisted, words);
+                //console.log(blacklist, blacklisted, words);
 
                 if(blacklisted)
                 {
