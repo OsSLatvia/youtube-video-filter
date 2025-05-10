@@ -10,6 +10,7 @@ if (window.location.hostname === 'www.youtube.com') {
         subscriptions: false,
         channel: false,
         sidebarRecommendations: true,
+        wordBlacklist: '',
     }; //used if user havent saved his settings
     let generalSettings = defaultSettings;
     const timeUnits = {
@@ -497,6 +498,33 @@ function injectFiltersButton() {
                     hiddenVideos = hiddenVideos + hideElement(parentContainer);
                 }
                 continue;
+            }
+
+            // Check if title contains blacklisted words
+            const blacklist = generalSettings.wordBlacklist ?? "";
+            if(blacklist.length > 0)
+            {
+                // todo why is this sometimes null
+                const videoTitleElement = item.querySelector("#video-title-link");
+                const videoTitle = videoTitleElement ? videoTitleElement.title : "WhyIsThisUndefined?";
+                
+                // replace regex?
+                const words = videoTitle.toLowerCase().split(" ").map((x)=> x.replace(".", "").replace("?", "").replace("!", ""));
+                
+                const blacklist_set = new Set(blacklist.toLowerCase().split(";").map((x)=>x.trim()).filter((x)=>x.length > 0))
+                
+                const blacklisted = words.some((x) => blacklist_set.has(x));
+
+                //console.log(blacklist, blacklisted, words);
+
+                if(blacklisted)
+                {
+                    const parentContainer = item.closest(selector);
+                    if (parentContainer) {
+                        hiddenVideos = hiddenVideos + hideElement(parentContainer);
+                    }
+                    continue;
+                }
             }
 
             const metadataLine = item.querySelector('#metadata-line');

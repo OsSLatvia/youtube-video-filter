@@ -19,6 +19,7 @@ const defaultGeneralSettings = {
     subscriptions: false,
     channel: false,
     sidebarRecommendations: true,
+    wordBlacklist: '',
 };
 
 
@@ -39,6 +40,7 @@ const videoSearchCheckbox = document.getElementById('setting-video-search');
 const subscriptionsCheckbox = document.getElementById('setting-subscriptions');
 const channelCheckbox = document.getElementById('setting-channel');
 const sidebarRecommendationsCheckbox = document.getElementById('setting-sidebar-recomendations');
+const wordBlacklistInput = document.getElementById('setting-word-blacklist');
 const saveGeneralButton = document.getElementById('save-settings');
 
 // Load Lang Settings
@@ -103,6 +105,7 @@ async function loadGeneralSettings() {
         subscriptionsCheckbox.checked = settings.subscriptions;
         channelCheckbox.checked = settings.channel;
         sidebarRecommendationsCheckbox.checked = settings.sidebarRecommendations;
+        wordBlacklistInput.value = settings.wordBlacklist ?? "";
     } catch (error) {
         console.error('Error loading general settings:', error);
     }
@@ -116,6 +119,7 @@ async function saveGeneralSettings() {
         subscriptions: subscriptionsCheckbox.checked,
         channel: channelCheckbox.checked,
         sidebarRecommendations: sidebarRecommendationsCheckbox.checked,
+        wordBlacklist: wordBlacklistInput.value,
     };
 
     try {
