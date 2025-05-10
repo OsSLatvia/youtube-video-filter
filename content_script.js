@@ -4,7 +4,14 @@ if (window.location.hostname === 'www.youtube.com') {
     const NEW_BUTTON_TEXT = 'Filters'; // Text for the new button
     const HOME_BUTTON_SELECTOR = 'ytd-guide-section-renderer.style-scope:nth-child(1) > div:nth-child(2) > ytd-guide-entry-renderer:nth-child(1) > a:nth-child(1)'; // Updated selector for the Home button
     let userLanguage = document.documentElement.lang || 'en';
-    let generalSettings = {};
+    const defaultSettings = {
+        homepage: true,
+        videoSearch: false,
+        subscriptions: false,
+        channel: false,
+        sidebarRecommendations: true,
+    }; //used if user havent saved his settings
+    let generalSettings = defaultSettings;
     const timeUnits = {
         en: { 'day': 1, 'week': 7, 'month': 30, 'year': 365 },
         lv: { 'dien': 1, 'nedēļ': 7, 'mēne': 30, 'gad': 365  }, //use olny word root
@@ -20,43 +27,55 @@ if (window.location.hostname === 'www.youtube.com') {
         fr: { thousand: 'k', million: 'M' }, 
     }; // Add more languages as needed
     
+    let maxAgeField=null;
+    let forceRecheckOnNextMutation=false;
     
     async function loadLanguageSettings() {
+        let result = {}
         try {
-            const result = await browser.storage.local.get('langSettings');
-            const settings = result.langSettings || {};
-            const useCustomLang = settings.useCustomLang || false;  // Default to false if not set
-            
-            if (useCustomLang) { 
-                // Set userLanguage to 'custom' if the checkbox is checked
-                userLanguage = 'custom';
-                // Add custom language data to timeUnits and abbreviations (replace with custom values as needed)
-                timeUnits.custom = {
-                    [settings.timeUnits.day]: 1,
-                    [settings.timeUnits.week]: 7,
-                    [settings.timeUnits.month]: 30,
-                    [settings.timeUnits.year]: 365
-                };
-                abbreviations.custom = {
-                    thousand: settings.abbreviations.thousand,
-                    million: settings.abbreviations.million 
-                };
-            };
-    
+            result = await browser.storage.local.get('langSettings');
         } catch (error) {
             console.error('Error retrieving settings:', error);
         }
+        const settings = result.langSettings || {};
+        const useCustomLang = settings.useCustomLang || false;  // Default to false if not set
+        if (useCustomLang) { 
+            // Set userLanguage to 'custom' if the checkbox is checked
+            userLanguage = 'custom';
+            // Add custom language data to timeUnits and abbreviations (replace with custom values as needed)
+            timeUnits.custom = {
+                [settings.timeUnits.day]: 1,
+                [settings.timeUnits.week]: 7,
+                [settings.timeUnits.month]: 30,
+                [settings.timeUnits.year]: 365
+            };
+            abbreviations.custom = {
+                thousand: settings.abbreviations.thousand,
+                million: settings.abbreviations.million 
+            };
+        };
     }
     async function loadGeneralSettings() {
-        const result = await browser.storage.local.get('generalSettings');
-        generalSettings = result.generalSettings || {};
+        let result = {}
+        try {
+            result = await browser.storage.local.get('generalSettings');
+            if (!result.generalSettings) {
+                browser.storage.local.set({ generalSettings: defaultSettings }); //if settings are not set, for first time users, default values saved in browser storage
+            } else {
+                generalSettings = result.generalSettings;
+            }
+        } catch (error) {
+            console.error('Error retrieving settings:', error);            
+        }
+
     }
     
     (async () => {
-        await loadLanguageSettings(); // Wait for loadLanguageSettings to resolve
-        await loadGeneralSettings(); // Wait for loadGeneralSettings to resolve
-
-
+        await Promise.all([
+            loadLanguageSettings(),  // This starts immediately
+            loadGeneralSettings()    // This starts immediately too
+        ]);
+    console.log("general settings: ", generalSettings)
     let lastPath = window.location.pathname;
     // Variables to hold current filter values
     let areFiltersSet = false;
@@ -68,22 +87,22 @@ if (window.location.hostname === 'www.youtube.com') {
     let currentPlaylists = null;
     let currentWatchedVideos = null;
 
-    async function isFilterEnabledForPath(path) {
+    function isFilterEnabledForPath(path) {
         if (path === '/') {
-            return await generalSettings.homepage;
+            return generalSettings.homepage;
         } else if (path.startsWith('/results')) {
-            return await generalSettings.videoSearch;
+            return generalSettings.videoSearch;
         } else if (path.startsWith('/feed/subscriptions')) {
-            return await generalSettings.subscriptions;
+            return generalSettings.subscriptions;
         } else if (path.startsWith('/@')) {
-            return await generalSettings.channel;
+            return generalSettings.channel;
         } else if (path.startsWith('/watch')) {
-            return await generalSettings.sidebarRecommendations;
+            return generalSettings.sidebarRecommendations;
         }
         // Default to false if not an expected view
         return false;
     }
-    if (await isFilterEnabledForPath(lastPath)) {
+    if (isFilterEnabledForPath(lastPath)) {
         loadStoredFilters();
     }
     // Immediately call initYouTubeFilter
@@ -186,6 +205,8 @@ function injectFiltersButton() {
 
     // Inject UI into DOM
     sidebar.insertAdjacentElement('beforebegin', buttonUI);
+    maxAgeField = document.getElementById('ageFilterContainer');
+    updateMaxAgeFieldVisibility(window.location.pathname);
 }
 
     function allowedPath(path){
@@ -358,6 +379,7 @@ function injectFiltersButton() {
             currentWatchedVideos
         );
         applyOnceFilters();
+        setupLinkClickListener();
         startObservingDOMChanges();
         
     
@@ -482,7 +504,7 @@ function injectFiltersButton() {
             const dateElement = metadataLine ? metadataLine.querySelector('span.inline-metadata-item:nth-of-type(2)') : null;
             if (viewsElement && dateElement) {
                 timeElement = await waitForElementInsideNode(item, 'ytd-thumbnail-overlay-time-status-renderer #text');
-            }
+            } //some elements load slower (usually elements that are overlayed on thumbnail) so waitForElementInsideNode waits for them to load and retries set times to look for these elements
 
 
             // Check if the item is a playlist (Mix) and the checkbox is checked
@@ -612,20 +634,13 @@ function injectFiltersButton() {
     // Start observing DOM changes only when filters are applied
     function startObservingDOMChanges() {
         if (domObserver) return;
-    
-        let maxAgeField = document.getElementById('ageFilterContainer');
+
         let currentPath = "";
-    
-        async function handlePathChange(newPath) {
+        function handlePathChange(newPath) {
             if (newPath !== currentPath) {
-                if (newPath=='/' || newPath.startsWith('/watch') || newPath.startsWith('/results')){
-                    showElement(maxAgeField);
-                }
-                else{
-                    hideElement(maxAgeField);
-                }
                 currentPath = newPath;
-                if (!(await isFilterEnabledForPath(newPath))){
+                updateMaxAgeFieldVisibility(newPath);
+                if (!isFilterEnabledForPath(newPath)){
                     loadEmptyFilters();
                 } else {
                     loadStoredFilters();
@@ -643,28 +658,23 @@ function injectFiltersButton() {
                 }
             }
         }
-    
+
         // Create a new MutationObserver instance
         domObserver = new MutationObserver((mutations) => {
             // Check if path changed
             const newPath = window.location.pathname;
             handlePathChange(newPath);
-    
-            // Count new dismissible nodes
-            let newDismissibleCount = 0;
-            mutations.forEach(mutation => {
-                mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === 1 && node.id === 'dismissible') {
-                        newDismissibleCount++;
-                    }
-                });
-            });
-    
-            // Apply filters only if new nodes are added and filters are set
-            if (areFiltersSet && newDismissibleCount > 0) {
-                const videos = findAllMutationVideos(mutations);
+            let newVideos;
+            if (forceRecheckOnNextMutation){
+                newVideos = findAllVideos(document);
+                forceRecheckOnNextMutation=false;
+            }
+            else{
+                newVideos = findAllMutationVideos(mutations);
+            }
+            if (areFiltersSet && newVideos.length > 0) {
                 checkAndCallFilters(
-                    videos,
+                    newVideos,
                     allowedPath(newPath) ? currentMaxAge : null,
                     currentMinViews,
                     currentMinLength,
@@ -797,7 +807,6 @@ function injectFiltersButton() {
 
             // Check if filters are set
             areFiltersSet = (currentMaxAge !== null && allowedPath(window.location.pathname)) || currentMinViews !== null || currentMinLength !== null || currentMaxLength !== null || currentLivestreams || currentPlaylists || currentWatchedVideos;
-            // startObservingDOMChanges(); // Start observing changes
 
             // Call filter recommendations function here if needed
             checkAndCallFilters(findAllVideos(document), currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists, currentWatchedVideos);
@@ -821,11 +830,34 @@ function injectFiltersButton() {
             hideElement(element);
         }
     }
+    function updateMaxAgeFieldVisibility(path) {
+        if (!maxAgeField) return;
+    
+        if (path === '/' || path.startsWith('/watch') || path.startsWith('/results')) {
+            showElement(maxAgeField);
+        } else {
+            hideElement(maxAgeField);
+        }
+    }
     // function resetProcessedIndex() {
     //     lastProcessedIndex = 0;
     // }
 
-
+    function setupLinkClickListener() {
+        document.addEventListener('click', (event) => {
+            const link = event.target.closest('a');
+            if (!link || !link.href) return;
+    
+            const targetPath = new URL(link.href).pathname;
+            const currentPath = window.location.pathname;
+    
+            if (targetPath === currentPath) {
+                // Same path link clicked → expect a soft reload
+                forceRecheckOnNextMutation = true;
+                console.log('[Filters] Soft reload via link click');
+            }
+        }, { capture: true }); // Capture phase to catch clicks before navigation
+    }
     
     // Stop observing DOM changes when filters are cleared
     function stopObservingDOMChanges() {
