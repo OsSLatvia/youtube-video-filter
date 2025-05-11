@@ -87,7 +87,7 @@ if (window.location.hostname === 'www.youtube.com') {
     let currentLivestreams = null;
     let currentPlaylists = null;
     let currentWatchedVideos = null;
-
+    let currentBlacklistedWords = null;
     function isFilterEnabledForPath(path) {
         if (path === '/') {
             return generalSettings.homepage;
@@ -130,6 +130,7 @@ if (window.location.hostname === 'www.youtube.com') {
         const storedLivestreams = localStorage.getItem('ytRemoveLivestreams');
         const storedPlaylists = localStorage.getItem('ytRemovePlaylists');
         const storedWatchedVideos = localStorage.getItem('ytRemoveWatchedVideos');
+        const storedBlacklistedWords = localStorage.getItem('ytFilterBlacklistedWords');
         if (storedMaxAge) currentMaxAge = parseInt(storedMaxAge);
         if (storedMinViews) currentMinViews = parseInt(storedMinViews);
         if (storedMinLength) currentMinLength = parseFloat(storedMinLength);
@@ -139,6 +140,7 @@ if (window.location.hostname === 'www.youtube.com') {
         currentLivestreams = storedLivestreams === 'true';  // Default to false if not stored
         currentPlaylists = storedPlaylists === 'true';  // Default to false if not stored
         currentWatchedVideos = storedWatchedVideos === 'true';  // Default to false if not stored
+        currentBlacklistedWords = storedBlacklistedWords === 'true';
     }
 
     function saveFilters() {
@@ -149,6 +151,8 @@ if (window.location.hostname === 'www.youtube.com') {
         localStorage.setItem('ytRemoveLivestreams', currentLivestreams);
         localStorage.setItem('ytRemovePlaylists', currentPlaylists);
         localStorage.setItem('ytRemoveWatchedVideos', currentWatchedVideos);
+        localStorage.setItem('ytFilterBlacklistedWords', currentBlacklistedWords);
+
     }
     
     let filtersButtonWrapper = null;
@@ -335,6 +339,21 @@ function injectFiltersButton() {
         watchedVideosLabel.textContent = 'Remove Watched Videos';
         watchedVideosFilterGroup.appendChild(watchedVideosInput);
         watchedVideosFilterGroup.appendChild(watchedVideosLabel);
+
+        // Blacklisted Words Checkbox
+        const blacklistedWordsFilterGroup = document.createElement('div');
+        blacklistedWordsFilterGroup.className = 'filter-group checkbox-group';
+        const blacklistedWordsInput = document.createElement('input');
+        blacklistedWordsInput.type = 'checkbox';
+        blacklistedWordsInput.id = 'filterBlacklistedWords';
+        blacklistedWordsInput.style.marginRight = '5px';
+        blacklistedWordsInput.checked = currentBlacklistedWords; 
+        const blacklistedWordsLabel = document.createElement('label');
+        blacklistedWordsLabel.setAttribute('for', 'filterBlacklistedWords');
+        blacklistedWordsLabel.style.marginRight = '15px';
+        blacklistedWordsLabel.textContent = 'Filter Blacklisted Words';
+        blacklistedWordsFilterGroup.appendChild(blacklistedWordsInput);
+        blacklistedWordsFilterGroup.appendChild(blacklistedWordsLabel);
     
         // Buttons
         const buttonGroup = document.createElement('div');
@@ -365,6 +384,7 @@ function injectFiltersButton() {
         filterBar.appendChild(livestreamsFilterGroup);
         filterBar.appendChild(playlistsFilterGroup);
         filterBar.appendChild(watchedVideosFilterGroup)
+        filterBar.appendChild(blacklistedWordsFilterGroup);
         filterBar.appendChild(buttonGroup);
     
         buttonWrapper.appendChild(filterBar);
@@ -377,7 +397,8 @@ function injectFiltersButton() {
             currentMaxLength !== null ||
             currentLivestreams ||
             currentPlaylists ||
-            currentWatchedVideos
+            currentWatchedVideos ||
+            currentBlacklistedWords 
         );
         applyOnceFilters();
         setupLinkClickListener();
@@ -429,11 +450,31 @@ function injectFiltersButton() {
     }
 
 
-    function checkAndCallFilters(videos, currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists, currentWatchedVideos){
-        let allVideos = videos
-        filterRecommendations(allVideos, currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists, currentWatchedVideos);
+function checkAndCallFilters(
+    videos,
+    currentMaxAge,
+    currentMinViews,
+    currentMinLength,
+    currentMaxLength,
+    currentLivestreams,
+    currentPlaylists,
+    currentWatchedVideos,
+    currentBlacklistedWords
+) {
+    let allVideos = videos;
+    filterRecommendations(
+        allVideos,
+        currentMaxAge,
+        currentMinViews,
+        currentMinLength,
+        currentMaxLength,
+        currentLivestreams,
+        currentPlaylists,
+        currentWatchedVideos,
+        currentBlacklistedWords
+    );
+}
 
-    }
     
     function waitForElementInsideNode(node, selector, timeout = 1000) {
         return new Promise((resolve, reject) => {
@@ -455,7 +496,7 @@ function injectFiltersButton() {
         });
     }
     // Function to filter recommendations based on age, views, and video length
-    async function filterRecommendations(videoItems, maxAge, minViews, minLength, maxLength, removeLivestreams, removePlaylists, removeWatchedVideos) {
+    async function filterRecommendations(videoItems, maxAge, minViews, minLength, maxLength, removeLivestreams, removePlaylists, removeWatchedVideos, removeBlacklistedWords) {
         
         // let videoItems = findAllVideos();
         let hiddenVideos=0;
@@ -502,20 +543,19 @@ function injectFiltersButton() {
 
             // Check if title contains blacklisted words
             const blacklist = generalSettings.wordBlacklist ?? "";
-            if(blacklist.length > 0)
+            if(removeBlacklistedWords && blacklist.length > 0)
             {
                 // todo why is this sometimes null
                 const videoTitleElement = item.querySelector("#video-title-link");
                 const videoTitle = videoTitleElement ? videoTitleElement.title : "WhyIsThisUndefined?";
                 
-                // replace regex?
-                const words = videoTitle.toLowerCase().split(" ").map((x)=> x.replace(".", "").replace("?", "").replace("!", ""));
-                
-                const blacklist_set = new Set(blacklist.toLowerCase().split(";").map((x)=>x.trim()).filter((x)=>x.length > 0))
-                
-                const blacklisted = words.some((x) => blacklist_set.has(x));
+                const sentance = videoTitle.toLowerCase();
 
-                //console.log(blacklist, blacklisted, words);
+                const blacklist_array = blacklist.toLowerCase().split(";").filter((x) => x.length > 0)
+                
+                const blacklisted = blacklist_array.some((x) => sentance.includes(x));
+
+                //console.log(blacklist_array, blacklisted, sentance);
 
                 if(blacklisted)
                 {
@@ -681,7 +721,8 @@ function injectFiltersButton() {
                         currentMaxLength !== null ||
                         currentLivestreams ||
                         currentPlaylists ||
-                        currentWatchedVideos
+                        currentWatchedVideos ||
+                        currentBlacklistedWords 
                     );
                 }
             }
@@ -709,7 +750,8 @@ function injectFiltersButton() {
                     currentMaxLength,
                     currentLivestreams,
                     currentPlaylists,
-                    currentWatchedVideos
+                    currentWatchedVideos,
+                    currentBlacklistedWords
                 );
             }
         });
@@ -717,44 +759,54 @@ function injectFiltersButton() {
         domObserver.observe(document.body, { childList: true, subtree: true });
     }
     
-    function setInputFieldsToStoredValues() {
-        const storedMaxAge = localStorage.getItem('ytMaxAge');
-        const storedMinViews = localStorage.getItem('ytMinViews');
-        const storedMinLength = localStorage.getItem('ytMinLength');
-        const storedMaxLength = localStorage.getItem('ytMaxLength');
-        
-        if (storedMaxAge) {
-            document.getElementById('ageFilter').value = parseInt(storedMaxAge);
-        } else {
-            document.getElementById('ageFilter').value = '';
-        }
-
-        if (storedMinViews) {
-            document.getElementById('viewFilter').value = parseInt(storedMinViews);
-        } else {
-            document.getElementById('viewFilter').value = '';
-        }
-
-        if (storedMinLength) {
-            document.getElementById('lengthMinFilter').value = parseFloat(storedMinLength);
-        } else {
-            document.getElementById('lengthMinFilter').value = '';
-        }
-
-        if (storedMaxLength) {
-            document.getElementById('lengthMaxFilter').value = parseFloat(storedMaxLength);
-        } else {
-            document.getElementById('lengthMaxFilter').value = '';
-        }
-        const storedLivestreams = localStorage.getItem('ytRemoveLivestreams');
-        const storedPlaylists = localStorage.getItem('ytRemovePlaylists');
-        const storedWatchedVideos = localStorage.getItem('ytRemoveWatchedVideos');
-
-        document.getElementById('filterLivestreams').checked = (storedLivestreams === 'true');
-        document.getElementById('filterPlaylists').checked = (storedPlaylists === 'true');
-        document.getElementById('filterWatchedVideos').checked = (storedWatchedVideos === 'true');
-
+function setInputFieldsToStoredValues() {
+    const storedMaxAge = localStorage.getItem('ytMaxAge');
+    const storedMinViews = localStorage.getItem('ytMinViews');
+    const storedMinLength = localStorage.getItem('ytMinLength');
+    const storedMaxLength = localStorage.getItem('ytMaxLength');
+    
+    if (storedMaxAge) {
+        document.getElementById('ageFilter').value = parseInt(storedMaxAge);
+    } else {
+        document.getElementById('ageFilter').value = '';
     }
+
+    if (storedMinViews) {
+        document.getElementById('viewFilter').value = parseInt(storedMinViews);
+    } else {
+        document.getElementById('viewFilter').value = '';
+    }
+
+    if (storedMinLength) {
+        document.getElementById('lengthMinFilter').value = parseFloat(storedMinLength);
+    } else {
+        document.getElementById('lengthMinFilter').value = '';
+    }
+
+    if (storedMaxLength) {
+        document.getElementById('lengthMaxFilter').value = parseFloat(storedMaxLength);
+    } else {
+        document.getElementById('lengthMaxFilter').value = '';
+    }
+
+    const storedLivestreams = localStorage.getItem('ytRemoveLivestreams');
+    const storedPlaylists = localStorage.getItem('ytRemovePlaylists');
+    const storedWatchedVideos = localStorage.getItem('ytRemoveWatchedVideos');
+    const storedBlacklistedWords = localStorage.getItem('ytFilterBlacklistedWords');
+    document.getElementById('filterLivestreams').checked = (storedLivestreams === 'true');
+    document.getElementById('filterPlaylists').checked = (storedPlaylists === 'true');
+    document.getElementById('filterWatchedVideos').checked = (storedWatchedVideos === 'true');
+    document.getElementById('filterBlacklistedWords').checked = (storedWatchedVideos === 'true');
+
+    // Get stored blacklisted words and set them in the input field
+    
+    if (storedBlacklistedWords) {
+        document.getElementById('blacklistedWordsInput').value = storedBlacklistedWords;
+    } else {
+        document.getElementById('blacklistedWordsInput').value = ''; // Default to empty if no words are stored
+    }
+}
+
     // Function to reset all filters
     function resetFilters() {
 
@@ -762,83 +814,122 @@ function injectFiltersButton() {
         setInputFieldsToStoredValues();
         applyOnceFilters();
     }
-    function loadEmptyFilters(){
-        document.getElementById('ageFilter').value = '';
-        document.getElementById('viewFilter').value = '';
-        document.getElementById('lengthMinFilter').value = '';
-        document.getElementById('lengthMaxFilter').value = '';
-        document.getElementById('filterLivestreams').checked = false;
-        document.getElementById('filterPlaylists').checked = false;
-        document.getElementById('filterWatchedVideos').checked = false;
-        currentMaxAge = null;
-        currentMinViews = null;
-        currentMinLength = null;
-        currentMaxLength = null;
-        currentLivestreams = null;
-        currentPlaylists = null;
-        currentWatchedVideos = null;
-        // resetProcessedIndex();
-        // lastProcessedIndex = 0; // Reset the counter
-        areFiltersSet = false;
-        checkAndCallFilters(findAllVideos(document), currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists, currentWatchedVideos);
-    }
+function loadEmptyFilters(){
+    document.getElementById('ageFilter').value = '';
+    document.getElementById('viewFilter').value = '';
+    document.getElementById('lengthMinFilter').value = '';
+    document.getElementById('lengthMaxFilter').value = '';
+    document.getElementById('filterLivestreams').checked = false;
+    document.getElementById('filterPlaylists').checked = false;
+    document.getElementById('filterWatchedVideos').checked = false;
+    document.getElementById('filterBlacklistedWords').checked = false;
+
+    currentMaxAge = null;
+    currentMinViews = null;
+    currentMinLength = null;
+    currentMaxLength = null;
+    currentLivestreams = null;
+    currentPlaylists = null;
+    currentWatchedVideos = null;
+    currentBlacklistedWords = null;
+
+    areFiltersSet = false;
+
+    checkAndCallFilters(
+        findAllVideos(document),
+        currentMaxAge,
+        currentMinViews,
+        currentMinLength,
+        currentMaxLength,
+        currentLivestreams,
+        currentPlaylists,
+        currentWatchedVideos,
+        currentBlacklistedWords
+    );
+}
+
 
     function applyOnceFilters(){
         applyFilters(false);
     }
     // Function to apply filters
-    function applyFilters(shouldFiltersSave = true) {
+function applyFilters(shouldFiltersSave = true) {
+    // fallback to current stored values
+    let maxAge = currentMaxAge ?? null;
+    let minViews = currentMinViews ?? null;
+    let minLength = currentMinLength ?? null;
+    let maxLength = currentMaxLength ?? null;
+    let filterLivestreams = currentLivestreams ?? false;
+    let filterPlaylists = currentPlaylists ?? false;
+    let filterWatchedVideos = currentWatchedVideos ?? false;
+    let filterBlacklistedWords = currentBlacklistedWords ?? false;
 
-        // fallback to current stored values
-        let maxAge = currentMaxAge ?? null;
-        let minViews = currentMinViews ?? null;
-        let minLength = currentMinLength ?? null;
-        let maxLength = currentMaxLength ?? null;
-        let filterLivestreams = currentLivestreams ?? false;
-        let filterPlaylists = currentPlaylists ?? false;
-        let filterWatchedVideos = currentWatchedVideos ?? false;
+    // try to override from DOM if elements exist
+    const ageEl = document.getElementById('ageFilter');
+    if (ageEl) maxAge = parseInt(ageEl.value) || null;
 
-        // try to override from DOM if elements exist
-        const ageEl = document.getElementById('ageFilter');
-        if (ageEl) maxAge = parseInt(ageEl.value) || null;
+    const viewsEl = document.getElementById('viewFilter');
+    if (viewsEl) minViews = parseInt(viewsEl.value) || null;
 
-        const viewsEl = document.getElementById('viewFilter');
-        if (viewsEl) minViews = parseInt(viewsEl.value) || null;
+    const minLenEl = document.getElementById('lengthMinFilter');
+    if (minLenEl) minLength = parseFloat(minLenEl.value) || null;
 
-        const minLenEl = document.getElementById('lengthMinFilter');
-        if (minLenEl) minLength = parseFloat(minLenEl.value) || null;
+    const maxLenEl = document.getElementById('lengthMaxFilter');
+    if (maxLenEl) maxLength = parseFloat(maxLenEl.value) || null;
 
-        const maxLenEl = document.getElementById('lengthMaxFilter');
-        if (maxLenEl) maxLength = parseFloat(maxLenEl.value) || null;
+    const liveEl = document.getElementById('filterLivestreams');
+    if (liveEl) filterLivestreams = liveEl.checked;
 
-        const liveEl = document.getElementById('filterLivestreams');
-        if (liveEl) filterLivestreams = liveEl.checked;
+    const playlistEl = document.getElementById('filterPlaylists');
+    if (playlistEl) filterPlaylists = playlistEl.checked;
 
-        const playlistEl = document.getElementById('filterPlaylists');
-        if (playlistEl) filterPlaylists = playlistEl.checked;
+    const watchedVideosEl = document.getElementById('filterWatchedVideos');
+    if (watchedVideosEl) filterWatchedVideos = watchedVideosEl.checked;
 
-        const watchedVideosEl = document.getElementById('filterWatchedVideos');
-        if (watchedVideosEl) filterWatchedVideos = watchedVideosEl.checked;
+    const blacklistedEl = document.getElementById('filterBlacklistedWords');
+    if (blacklistedEl) filterBlacklistedWords = blacklistedEl.checked;
 
-            currentMaxAge = maxAge ? parseInt(maxAge) : null;
-            currentMinViews = minViews ? parseInt(minViews) : null;
-            currentMinLength = minLength ? parseFloat(minLength) : null;
-            currentMaxLength = maxLength ? parseFloat(maxLength) : null;
-            currentLivestreams = filterLivestreams;
-            currentPlaylists = filterPlaylists;
-            currentWatchedVideos = filterWatchedVideos;
+    // update current values
+    currentMaxAge = maxAge ? parseInt(maxAge) : null;
+    currentMinViews = minViews ? parseInt(minViews) : null;
+    currentMinLength = minLength ? parseFloat(minLength) : null;
+    currentMaxLength = maxLength ? parseFloat(maxLength) : null;
+    currentLivestreams = filterLivestreams;
+    currentPlaylists = filterPlaylists;
+    currentWatchedVideos = filterWatchedVideos;
+    currentBlacklistedWords = filterBlacklistedWords;
 
-            if (shouldFiltersSave) {
-                saveFilters(); // Save filter options to localStorage only if save filters button clicked
-            }
-            
+    // Save filters if requested
+    if (shouldFiltersSave) {
+        saveFilters(); 
+    }
 
-            // Check if filters are set
-            areFiltersSet = (currentMaxAge !== null && allowedPath(window.location.pathname)) || currentMinViews !== null || currentMinLength !== null || currentMaxLength !== null || currentLivestreams || currentPlaylists || currentWatchedVideos;
+    // Update filters set flag
+    areFiltersSet = (
+        (currentMaxAge !== null && allowedPath(window.location.pathname)) ||
+        currentMinViews !== null ||
+        currentMinLength !== null ||
+        currentMaxLength !== null ||
+        currentLivestreams ||
+        currentPlaylists ||
+        currentWatchedVideos ||
+        currentBlacklistedWords
+    );
 
-            // Call filter recommendations function here if needed
-            checkAndCallFilters(findAllVideos(document), currentMaxAge, currentMinViews, currentMinLength, currentMaxLength, currentLivestreams, currentPlaylists, currentWatchedVideos);
-        }
+    // Call filtering logic
+    checkAndCallFilters(
+        findAllVideos(document),
+        currentMaxAge,
+        currentMinViews,
+        currentMinLength,
+        currentMaxLength,
+        currentLivestreams,
+        currentPlaylists,
+        currentWatchedVideos,
+        currentBlacklistedWords // <- Add this to your filtering function signature if needed
+    );
+}
+
     function hideElement(element) {
         if (element) {
             element.style.display = 'none';
