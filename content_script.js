@@ -82,6 +82,7 @@ if (window.location.hostname === 'www.youtube.com') {
     let areFiltersSet = false;
     let currentMaxAge = null;
     let currentMinViews = null;
+    let currentMaxViews = null;
     let currentMinLength = null; 
     let currentMaxLength = null; 
     let currentLivestreams = null;
@@ -125,6 +126,7 @@ if (window.location.hostname === 'www.youtube.com') {
     function loadStoredFilters() {
         const storedMaxAge = localStorage.getItem('ytMaxAge');
         const storedMinViews = localStorage.getItem('ytMinViews');
+        const storedMaxViews = localStorage.getItem('ytMaxViews');
         const storedMinLength = localStorage.getItem('ytMinLength');
         const storedMaxLength = localStorage.getItem('ytMaxLength');
         const storedLivestreams = localStorage.getItem('ytRemoveLivestreams');
@@ -133,6 +135,7 @@ if (window.location.hostname === 'www.youtube.com') {
         const storedBlacklistedWords = localStorage.getItem('ytFilterBlacklistedWords');
         if (storedMaxAge) currentMaxAge = parseInt(storedMaxAge);
         if (storedMinViews) currentMinViews = parseInt(storedMinViews);
+        if (storedMaxViews) currentMaxViews = parseInt(storedMaxViews);
         if (storedMinLength) currentMinLength = parseFloat(storedMinLength);
         if (storedMaxLength) currentMaxLength = parseFloat(storedMaxLength);
 
@@ -146,6 +149,7 @@ if (window.location.hostname === 'www.youtube.com') {
     function saveFilters() {
         localStorage.setItem('ytMaxAge', currentMaxAge);
         localStorage.setItem('ytMinViews', currentMinViews);
+        localStorage.setItem('ytMaxViews', currentMaxViews);
         localStorage.setItem('ytMinLength', currentMinLength);
         localStorage.setItem('ytMaxLength', currentMaxLength);
         localStorage.setItem('ytRemoveLivestreams', currentLivestreams);
@@ -264,6 +268,21 @@ function injectFiltersButton() {
         viewInput.value = currentMinViews || '';
         viewFilterGroup.appendChild(viewLabel);
         viewFilterGroup.appendChild(viewInput);
+
+                // Max Views Filter
+        const maxViewFilterGroup = document.createElement('div');
+        maxViewFilterGroup.className = 'filter-group';
+        const maxViewLabel = document.createElement('label');
+        maxViewLabel.setAttribute('for', 'maxViewFilter');
+        maxViewLabel.textContent = 'Max Views:';
+        const maxViewInput = document.createElement('input');
+        maxViewInput.type = 'number';
+        maxViewInput.id = 'maxViewFilter';
+        maxViewInput.min = '0';
+        maxViewInput.placeholder = 'e.g., 10000';
+        maxViewInput.value = currentMaxViews || '';
+        maxViewFilterGroup.appendChild(maxViewLabel);
+        maxViewFilterGroup.appendChild(maxViewInput);
     
         // Min Length Filter
         const lengthMinFilterGroup = document.createElement('div');
@@ -379,6 +398,7 @@ function injectFiltersButton() {
         // Append all filter groups to the filter bar
         filterBar.appendChild(ageFilterGroup);
         filterBar.appendChild(viewFilterGroup);
+        filterBar.appendChild(maxViewFilterGroup);
         filterBar.appendChild(lengthMinFilterGroup);
         filterBar.appendChild(lengthMaxFilterGroup);
         filterBar.appendChild(livestreamsFilterGroup);
@@ -393,6 +413,7 @@ function injectFiltersButton() {
         areFiltersSet = (
             (currentMaxAge !== null && allowedPath(window.location.pathname)) ||
             currentMinViews !== null ||
+            currentMaxViews !== null ||
             currentMinLength !== null ||
             currentMaxLength !== null ||
             currentLivestreams ||
@@ -454,6 +475,7 @@ function checkAndCallFilters(
     videos,
     currentMaxAge,
     currentMinViews,
+    currentMaxViews,
     currentMinLength,
     currentMaxLength,
     currentLivestreams,
@@ -466,6 +488,7 @@ function checkAndCallFilters(
         allVideos,
         currentMaxAge,
         currentMinViews,
+        currentMaxViews,
         currentMinLength,
         currentMaxLength,
         currentLivestreams,
@@ -496,7 +519,7 @@ function checkAndCallFilters(
         });
     }
     // Function to filter recommendations based on age, views, and video length
-    async function filterRecommendations(videoItems, maxAge, minViews, minLength, maxLength, removeLivestreams, removePlaylists, removeWatchedVideos, removeBlacklistedWords) {
+    async function filterRecommendations(videoItems, maxAge, minViews, maxViews, minLength, maxLength, removeLivestreams, removePlaylists, removeWatchedVideos, removeBlacklistedWords) {
         
         // let videoItems = findAllVideos();
         let hiddenVideos=0;
@@ -597,6 +620,7 @@ function checkAndCallFilters(
                 if (parentContainer) {
                     if ((maxAge && videoAgeInDays > maxAge) || 
                         (minViews && videoViews < minViews) || 
+                        (maxViews && videoViews > maxViews) || 
                         (minLength && videoLengthInMinutes < minLength) || 
                         (maxLength && videoLengthInMinutes > maxLength)) {
                             hiddenVideos= hiddenVideos + hideElement(parentContainer);
@@ -717,6 +741,7 @@ function checkAndCallFilters(
                     areFiltersSet = (
                         (currentMaxAge !== null && allowedPath(newPath)) ||
                         currentMinViews !== null ||
+                        currentMaxViews !== null ||
                         currentMinLength !== null ||
                         currentMaxLength !== null ||
                         currentLivestreams ||
@@ -746,6 +771,7 @@ function checkAndCallFilters(
                     newVideos,
                     allowedPath(newPath) ? currentMaxAge : null,
                     currentMinViews,
+                    currentMaxViews,
                     currentMinLength,
                     currentMaxLength,
                     currentLivestreams,
@@ -762,6 +788,7 @@ function checkAndCallFilters(
 function setInputFieldsToStoredValues() {
     const storedMaxAge = localStorage.getItem('ytMaxAge');
     const storedMinViews = localStorage.getItem('ytMinViews');
+    const storedMaxViews = localStorage.getItem('ytMaxViews');
     const storedMinLength = localStorage.getItem('ytMinLength');
     const storedMaxLength = localStorage.getItem('ytMaxLength');
     
@@ -775,6 +802,12 @@ function setInputFieldsToStoredValues() {
         document.getElementById('viewFilter').value = parseInt(storedMinViews);
     } else {
         document.getElementById('viewFilter').value = '';
+    }
+
+    if (storedMaxViews) {
+        document.getElementById('maxViewFilter').value = parseInt(storedMaxViews);
+    } else {
+        document.getElementById('maxViewFilter').value = '';
     }
 
     if (storedMinLength) {
@@ -826,6 +859,7 @@ function loadEmptyFilters(){
 
     currentMaxAge = null;
     currentMinViews = null;
+    currentMaxViews = null;
     currentMinLength = null;
     currentMaxLength = null;
     currentLivestreams = null;
@@ -839,6 +873,7 @@ function loadEmptyFilters(){
         findAllVideos(document),
         currentMaxAge,
         currentMinViews,
+        currentMaxViews,
         currentMinLength,
         currentMaxLength,
         currentLivestreams,
@@ -850,6 +885,7 @@ function loadEmptyFilters(){
 
 
     function applyOnceFilters(){
+        console.log(currentMaxViews);
         applyFilters(false);
     }
     // Function to apply filters
@@ -857,6 +893,7 @@ function applyFilters(shouldFiltersSave = true) {
     // fallback to current stored values
     let maxAge = currentMaxAge ?? null;
     let minViews = currentMinViews ?? null;
+    let maxViews = currentMaxViews ?? null;
     let minLength = currentMinLength ?? null;
     let maxLength = currentMaxLength ?? null;
     let filterLivestreams = currentLivestreams ?? false;
@@ -870,6 +907,9 @@ function applyFilters(shouldFiltersSave = true) {
 
     const viewsEl = document.getElementById('viewFilter');
     if (viewsEl) minViews = parseInt(viewsEl.value) || null;
+
+    const maxViewsEl = document.getElementById('maxViewFilter');
+    if (maxViewsEl) maxViews = parseInt(maxViewsEl.value) || null;
 
     const minLenEl = document.getElementById('lengthMinFilter');
     if (minLenEl) minLength = parseFloat(minLenEl.value) || null;
@@ -892,6 +932,7 @@ function applyFilters(shouldFiltersSave = true) {
     // update current values
     currentMaxAge = maxAge ? parseInt(maxAge) : null;
     currentMinViews = minViews ? parseInt(minViews) : null;
+    currentMaxViews = maxViews ? parseInt(maxViews) : null;
     currentMinLength = minLength ? parseFloat(minLength) : null;
     currentMaxLength = maxLength ? parseFloat(maxLength) : null;
     currentLivestreams = filterLivestreams;
@@ -908,6 +949,7 @@ function applyFilters(shouldFiltersSave = true) {
     areFiltersSet = (
         (currentMaxAge !== null && allowedPath(window.location.pathname)) ||
         currentMinViews !== null ||
+        currentMaxViews !== null ||
         currentMinLength !== null ||
         currentMaxLength !== null ||
         currentLivestreams ||
@@ -921,6 +963,7 @@ function applyFilters(shouldFiltersSave = true) {
         findAllVideos(document),
         currentMaxAge,
         currentMinViews,
+        currentMaxViews,
         currentMinLength,
         currentMaxLength,
         currentLivestreams,
