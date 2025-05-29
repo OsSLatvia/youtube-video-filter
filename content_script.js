@@ -829,7 +829,7 @@ function setInputFieldsToStoredValues() {
     document.getElementById('filterLivestreams').checked = (storedLivestreams === 'true');
     document.getElementById('filterPlaylists').checked = (storedPlaylists === 'true');
     document.getElementById('filterWatchedVideos').checked = (storedWatchedVideos === 'true');
-    document.getElementById('filterBlacklistedWords').checked = (storedWatchedVideos === 'true');
+    document.getElementById('filterBlacklistedWords').checked = (storedBlacklistedWords === 'true');
 
     // Get stored blacklisted words and set them in the input field
     
@@ -969,7 +969,7 @@ function applyFilters(shouldFiltersSave = true) {
         currentLivestreams,
         currentPlaylists,
         currentWatchedVideos,
-        currentBlacklistedWords // <- Add this to your filtering function signature if needed
+        currentBlacklistedWords 
     );
 }
 
