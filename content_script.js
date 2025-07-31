@@ -1039,61 +1039,83 @@ function applyFilters(shouldFiltersSave = true) {
 
 
 // All selectors from youtube
+// Detect if new YouTube version is active (adjust selector as needed)
+    function isNewYouTubeVersion() {
+        return !!document.querySelector('.yt-lockup-metadata-view-model-wiz__title');
+    }
+    const newVersion = isNewYouTubeVersion();
 
     function isLivestream(item) {
-        // item.querySelector('.badge-style-type-live-now-alternate') ||
-        // item.querySelector('.badge-shape-wiz.badge-shape-wiz--thumbnail-live.badge-shape-wiz--thumbnail-badge') //old selectors didnt work for me (might be dependant on youtube version)
-            
-        liveBadgeElement = item.querySelector('.badge-shape-wiz--thumbnail-live')     //should work for all languages, looks for live badge class selector.
-        // const liveTextElement = item.querySelector('.badge-shape-wiz__text');
-        // return liveTextElement && liveTextElement.textContent.trim() === "LIVE"; //checks for text value so for other languages might not work
-        
-        return liveBadgeElement
+        if (newVersion) {
+            // New version selector
+            return item.querySelector('.badge-shape-wiz--thumbnail-live') || null;
+        } else {
+            // Old version selectors
+            return item.querySelector('.badge-style-type-live-now-alternate') ||
+                item.querySelector('.badge-shape-wiz.badge-shape-wiz--thumbnail-live.badge-shape-wiz--thumbnail-badge') || null;
+        }
     }
 
     function isWatched(item) {
-        // return item.querySelector('ytd-thumbnail-overlay-resume-playback-renderer'); //old selectors didnt work for me (might be dependant on youtube version)
-        return item.querySelector('yt-thumbnail-overlay-progress-bar-view-model')
+        if (newVersion) {
+            return item.querySelector('yt-thumbnail-overlay-progress-bar-view-model') || null;
+        } else {
+            return item.querySelector('ytd-thumbnail-overlay-resume-playback-renderer') || null;
+        }
     }
 
     function getVideoTitle(item) {
-        // return item.querySelector('#video-title-link')?.title ?? ""; //old selectors didnt work for me (might be dependant on youtube version)
-        titleElement = item.querySelector('.yt-lockup-metadata-view-model-wiz__title');
-        if (!titleElement) return "";  // return empty string if no title found
-        return titleElement.textContent.trim();
+        if (newVersion) {
+            const titleElement = item.querySelector('.yt-lockup-metadata-view-model-wiz__title');
+            return titleElement ? titleElement.textContent.trim() : "";
+        } else {
+            const titleElement = item.querySelector('#video-title-link');
+            return titleElement ? (titleElement.title || titleElement.textContent.trim()) : "";
+        }
     }
 
     function isPlaylist(item) {
-        // return (
-        //     // item.querySelector('ytd-thumbnail-overlay-bottom-panel-renderer yt-formatted-string') ||
-        //     // item.querySelector('yt-thumbnail-overlay-badge-view-model')
-        // ); //old selectors didnt work for me (might be dependant on youtube version)
-        const playlistTextElement = item.querySelector('.badge-shape-wiz__text');
-        return playlistTextElement && (playlistTextElement.textContent.trim() === "Mix" || playlistTextElement.textContent.trim() === "Playlist");  //works for olny english (mix and playlist)
-        //should change this to look for playlist badge class selector so it doesnt compare text values that may differ depending on language
+        if (newVersion) {
+            const playlistTextElement = item.querySelector('.badge-shape-wiz__text');
+            return playlistTextElement && (playlistTextElement.textContent.trim() === "Mix" || playlistTextElement.textContent.trim() === "Playlist");
+        } else {
+            return !!(item.querySelector('yt-thumbnail-overlay-badge-view-model') ||
+                    item.querySelector('ytd-thumbnail-overlay-bottom-panel-renderer yt-formatted-string'));
+        }
     }
 
     function getViewsElement(item) {
-        const metadataLine = item.querySelector('yt-lockup-metadata-view-model');
-        if (!metadataLine) return null;
-        // return metadataLine?.querySelector('span.inline-metadata-item:nth-of-type(1)'); //old selectors didnt work for me (might be dependant on youtube version)
-        return metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(1)').textContent;
-
+        if (newVersion) {
+            const metadataLine = item.querySelector('yt-lockup-metadata-view-model');
+            if (!metadataLine) return null;
+            const el = metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(1)');
+            return el ? el.textContent : null;
+        } else {
+            const metadataLine = item.querySelector('yt-content-metadata-view-model');
+            if (!metadataLine) return null;
+            const el = metadataLine.querySelector('.yt-content-metadata-view-model-wiz__metadata-row > span[role="text"]:nth-of-type(1)');
+            return el ? el.textContent : null;
+        }
     }
 
     function getDateElement(item) {
-        const metadataLine = item.querySelector('yt-lockup-metadata-view-model');
-        if (!metadataLine) return null;
-         
-        // return metadataLine?.querySelector('span.inline-metadata-item:nth-of-type(2)'); //old selectors didnt work for me (might be dependant on youtube version)
-        return metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(3)').textContent;
- 
+        if (newVersion) {
+            const metadataLine = item.querySelector('yt-lockup-metadata-view-model');
+            if (!metadataLine) return null;
+            const el = metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(3)');
+            return el ? el.textContent : null;
+        } else {
+            const metadataLine = item.querySelector('yt-content-metadata-view-model');
+            if (!metadataLine) return null;
+            const el = metadataLine.querySelector('.yt-content-metadata-view-model-wiz__metadata-row > span[role="text"]:nth-of-type(3)');
+            return el ? el.textContent : null;
+        }
     }
 
-
     async function getTimeElement(item) {
-        const timeBadgeTextElement = await  waitForElementInsideNode(item, '.badge-shape-wiz__text');
-        return timeBadgeTextElement.textContent.trim();
+    // Assuming this badge is the same on both versions; otherwise add conditional here too
+    const timeBadgeTextElement = await waitForElementInsideNode(item, '.badge-shape-wiz__text');
+    return timeBadgeTextElement ? timeBadgeTextElement.textContent.trim() : null;
     }
 
         function waitForElementInsideNode(node, selector, timeout = 1000) {
