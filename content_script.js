@@ -581,7 +581,7 @@ function checkAndCallFilters(
             const dateElement = getDateElement(item);
             if (dateElement){
                 if (maxAge) {
-                    const videoAgeInDays = parseVideoAge(dateElement.textContent);
+                    const videoAgeInDays = parseVideoAge(dateElement);
                     if (videoAgeInDays > maxAge) {
                         hiddenVideos += hideElement(parentContainer);
                         continue;
@@ -597,7 +597,7 @@ function checkAndCallFilters(
             const viewsElement = getViewsElement(item);
             if(viewsElement) {
                 if (minViews || maxViews) {
-                    const videoViews = parseVideoViews(viewsElement.textContent);
+                    const videoViews = parseVideoViews(viewsElement);
                     let shouldHide = false;
                     if (minViews !== null && videoViews < minViews) {
                         shouldHide = true;
@@ -1077,7 +1077,7 @@ function applyFilters(shouldFiltersSave = true) {
         const metadataLine = item.querySelector('yt-lockup-metadata-view-model');
         if (!metadataLine) return null;
         // return metadataLine?.querySelector('span.inline-metadata-item:nth-of-type(1)'); //old selectors didnt work for me (might be dependant on youtube version)
-        return metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(1)');
+        return metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(1)').textContent;
 
     }
 
@@ -1086,7 +1086,7 @@ function applyFilters(shouldFiltersSave = true) {
         if (!metadataLine) return null;
          
         // return metadataLine?.querySelector('span.inline-metadata-item:nth-of-type(2)'); //old selectors didnt work for me (might be dependant on youtube version)
-        return metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(3)');
+        return metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(3)').textContent;
  
     }
 
