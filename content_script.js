@@ -491,7 +491,7 @@ function checkAndCallFilters(
     if (!versionIsSet){
         if (allVideos.length>1){
                 newVersion = isNewYouTubeVersion();
-                versionIsSet=false;
+                versionIsSet=true;
         }
     }
     filterRecommendations(
@@ -1100,9 +1100,9 @@ function applyFilters(shouldFiltersSave = true) {
             const el = metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(1)');
             return el ? el.textContent : null;
         } else {
-            const metadataLine = item.querySelector('yt-content-metadata-view-model');
+            const metadataLine = item.querySelector('#metadata-line');
             if (!metadataLine) return null;
-            const el = metadataLine.querySelector('.yt-content-metadata-view-model-wiz__metadata-row > span[role="text"]:nth-of-type(1)');
+            const el = metadataLine.querySelector('span.inline-metadata-item:nth-of-type(1)');
             return el ? el.textContent : null;
         }
     }
@@ -1114,9 +1114,9 @@ function applyFilters(shouldFiltersSave = true) {
             const el = metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(3)');
             return el ? el.textContent : null;
         } else {
-            const metadataLine = item.querySelector('yt-content-metadata-view-model');
+            const metadataLine = item.querySelector('#metadata-line');
             if (!metadataLine) return null;
-            const el = metadataLine.querySelector('.yt-content-metadata-view-model-wiz__metadata-row > span[role="text"]:nth-of-type(3)');
+            const el = metadataLine.querySelector('span.inline-metadata-item:nth-of-type(2)') ;
             return el ? el.textContent : null;
         }
     }

@@ -1,7 +1,7 @@
 {
   "manifest_version": 2,
   "name": "YouTube Recommendation Filter",
-  "version": "3.0",
+  "version": "3.2",
   "description": "Filter YouTube recommendations by video age and views",
   "permissions": [
     "tabs",
