@@ -76,7 +76,7 @@ if (window.location.hostname === 'www.youtube.com') {
             loadLanguageSettings(),  // This starts immediately
             loadGeneralSettings()    // This starts immediately too
         ]);
-    console.log("general settings: ", generalSettings)
+    // console.log("general settings: ", generalSettings)
     let lastPath = window.location.pathname;
     // Variables to hold current filter values
     let areFiltersSet = false;
@@ -443,7 +443,8 @@ function injectFiltersButton() {
         } else if (path.startsWith('/@') || path.startsWith('/channel/')) {
             return 'ytd-rich-item-renderer'; // Channel page
         } else if (path.startsWith('/watch')) {
-            return 'ytd-compact-video-renderer'; // sidebar page
+            return 'ytd-compact-video-renderer'; // sidebar page *old selector
+            // return 'yt-lockup-view-model-wiz--compact'; // sidebar page *new selector but on sidebar recomendations element ids have changed so cant use the same filters.
         } else {
             return '#dismissible'; // Fallback (old structure)
         }
@@ -499,144 +500,149 @@ function checkAndCallFilters(
 }
 
     
-    function waitForElementInsideNode(node, selector, timeout = 1000) {
-        return new Promise((resolve, reject) => {
-            const interval = 50; // Check every 50ms
-            const maxAttempts = timeout / interval; // Max attempts before giving up
-            let attempts = 0;
-    
-            const check = () => {
-                const el = node.querySelector(selector);
-                if (el || attempts >= maxAttempts) {
-                    resolve(el); // If element found or timeout reached
-                } else {
-                    attempts++;
-                    setTimeout(check, interval); // Keep checking
-                }
-            };
-    
-            check(); // Start checking immediately
-        });
-    }
-    // Function to filter recommendations based on age, views, and video length
-    async function filterRecommendations(videoItems, maxAge, minViews, maxViews, minLength, maxLength, removeLivestreams, removePlaylists, removeWatchedVideos, removeBlacklistedWords) {
-        
-        // let videoItems = findAllVideos();
-        let hiddenVideos=0;
-        let shownVideos=0;
-        // Only process videos starting from the last processed index
-        for (let i = 0; i < videoItems.length; i++) {
-            const item = videoItems[i];
 
-            // Check if it's a livestream
-            const liveBadge = item.querySelector('.badge-style-type-live-now-alternate');
-            const liveBadgev2 = item.querySelector('.badge-shape-wiz.badge-shape-wiz--thumbnail-live.badge-shape-wiz--thumbnail-badge');
-            // Check for "Mix" playlist label
-            const playlistLabel = item.querySelector('ytd-thumbnail-overlay-bottom-panel-renderer yt-formatted-string');
-            const playlistLabelv2 = item.querySelector('yt-thumbnail-overlay-badge-view-model');
-            selector=getVideoSelectorByPath();
-            // Skip this item if it's a livestream and the checkbox is checked
-            if (liveBadge || liveBadgev2) {
-                if (removeLivestreams){
-                    const parentContainer = item.closest(selector);
-                    if (parentContainer) {
-                        hiddenVideos= hiddenVideos + hideElement(parentContainer);
-                        // parentContainer.style.display = 'none'; // Hide livestreams
+
+
+
+
+
+
+
+
+
+
+
+    // Function to filter recommendations based on age, views, and video length
+    async function filterRecommendations(
+        videoItems,
+        maxAge,
+        minViews,
+        maxViews,
+        minLength,
+        maxLength,
+        removeLivestreams,
+        removePlaylists,
+        removeWatchedVideos,
+        removeBlacklistedWords
+    ) {
+        let hiddenVideos = 0;
+        let shownVideos = 0;
+        const selector = getVideoSelectorByPath();
+        const blacklist = (generalSettings.wordBlacklist ?? "").toLowerCase().split(";").filter(Boolean);
+
+        for (const item of videoItems) {
+            const parentContainer = item.closest(selector);
+            if (!parentContainer) continue;
+
+            // 🔴 Livestream
+            if (isLivestream(item)) {
+                if (removeLivestreams) {
+                    hiddenVideos += hideElement(parentContainer);
+                    continue;
+                } else {
+                    shownVideos += showElement(parentContainer);
+                }
+            }
+
+            // 🔴 Watched
+            if (isWatched(item)) {
+                if (removeWatchedVideos) {
+                    hiddenVideos += hideElement(parentContainer);
+                    continue;
+                } else {
+                    shownVideos += showElement(parentContainer);
+                }
+            }
+
+            // 🔴 Blacklist
+            if (blacklist.length > 0) {
+                const title = getVideoTitle(item).toLowerCase();
+                const isBlacklisted = blacklist.some(word => title.includes(word));
+                if (isBlacklisted) {
+                    if (removeBlacklistedWords) {
+                        hiddenVideos += hideElement(parentContainer);
+                        continue;
+                    } else {
+                        shownVideos += showElement(parentContainer);
+                    }
+                }
+            }
+
+            // 🔴 Playlist
+            if (isPlaylist(item)) {
+                if (removePlaylists) {
+                    hiddenVideos += hideElement(parentContainer);
+                    continue;
+                } else {
+                    shownVideos += showElement(parentContainer);
+                }
+            }
+            // 🔴 Age filter
+            const dateElement = getDateElement(item);
+            if (dateElement){
+                if (maxAge) {
+                    const videoAgeInDays = parseVideoAge(dateElement.textContent);
+                    if (videoAgeInDays > maxAge) {
+                        hiddenVideos += hideElement(parentContainer);
+                        continue;
+                    } else {
+                        shownVideos += showElement(parentContainer);
                     }
                 }
                 else {
-                    const parentContainer = item.closest(selector);
-                    if (parentContainer) {
-                        shownVideos= shownVideos + showElement(parentContainer);
-                        // parentContainer.style.display = ''; // Hide livestreams
-                    }
-                }
-                continue;
-            }
-
-            // Check if video has been watched
-            const progressBar = item.querySelector('ytd-thumbnail-overlay-resume-playback-renderer');
-            if (progressBar && removeWatchedVideos) {
-                const parentContainer = item.closest(selector);
-                if (parentContainer) {
-                    hiddenVideos = hiddenVideos + hideElement(parentContainer);
-                }
-                continue;
-            }
-
-            // Check if title contains blacklisted words
-            const blacklist = generalSettings.wordBlacklist ?? "";
-            if(removeBlacklistedWords && blacklist.length > 0)
-            {
-                // todo why is this sometimes null
-                const videoTitleElement = item.querySelector("#video-title-link");
-                const videoTitle = videoTitleElement ? videoTitleElement.title : "WhyIsThisUndefined?";
-                
-                const sentance = videoTitle.toLowerCase();
-
-                const blacklist_array = blacklist.toLowerCase().split(";").filter((x) => x.length > 0)
-                
-                const blacklisted = blacklist_array.some((x) => sentance.includes(x));
-
-                //console.log(blacklist_array, blacklisted, sentance);
-
-                if(blacklisted)
-                {
-                    const parentContainer = item.closest(selector);
-                    if (parentContainer) {
-                        hiddenVideos = hiddenVideos + hideElement(parentContainer);
-                    }
-                    continue;
+                    shownVideos += showElement(parentContainer);
                 }
             }
-
-            const metadataLine = item.querySelector('#metadata-line');
-            const viewsElement = metadataLine ? metadataLine.querySelector('span.inline-metadata-item:nth-of-type(1)') : null;
-            const dateElement = metadataLine ? metadataLine.querySelector('span.inline-metadata-item:nth-of-type(2)') : null;
-            if (viewsElement && dateElement) {
-                timeElement = await waitForElementInsideNode(item, 'ytd-thumbnail-overlay-time-status-renderer #text');
-            } //some elements load slower (usually elements that are overlayed on thumbnail) so waitForElementInsideNode waits for them to load and retries set times to look for these elements
-
-
-            // Check if the item is a playlist (Mix) and the checkbox is checked
-            if (playlistLabel || playlistLabelv2) {
-                const parentContainer = item.closest(selector);
-                if (removePlaylists) {
-                    if (parentContainer) {
-                        hiddenVideos= hiddenVideos + hideElement(parentContainer);
+            // 🔴 Views filter
+            const viewsElement = getViewsElement(item);
+            if(viewsElement) {
+                if (minViews || maxViews) {
+                    const videoViews = parseVideoViews(viewsElement.textContent);
+                    let shouldHide = false;
+                    if (minViews !== null && videoViews < minViews) {
+                        shouldHide = true;
                     }
-                } else {
-                    if (parentContainer) {
-                        shownVideos= shownVideos + showElement(parentContainer);
+                    if (!shouldHide && maxViews !== null && videoViews > maxViews) {
+                        shouldHide = true;
                     }
-                }
-                continue; // Skip further processing for playlists
-            }
-            if (viewsElement && dateElement && timeElement) {
-                const videoAgeInDays = parseVideoAge(dateElement.textContent);
-                const videoViews = parseVideoViews(viewsElement.textContent);
-                const videoLengthInMinutes = parseVideoLength(timeElement.textContent);
-                const parentContainer = item.closest(selector);
-                if (parentContainer) {
-                    if ((maxAge && videoAgeInDays > maxAge) || 
-                        (minViews && videoViews < minViews) || 
-                        (maxViews && videoViews > maxViews) || 
-                        (minLength && videoLengthInMinutes < minLength) || 
-                        (maxLength && videoLengthInMinutes > maxLength)) {
-                            hiddenVideos= hiddenVideos + hideElement(parentContainer);
-                            // parentContainer.style.display = 'none';
+                    if (shouldHide) {
+                        hiddenVideos += hideElement(parentContainer);
+                        continue;
                     } 
                     else {
-                        shownVideos= shownVideos + showElement(parentContainer);
-                        // parentContainer.style.display = '';
+                        shownVideos += showElement(parentContainer);
                     }
                 }
+                else{
+                    shownVideos += showElement(parentContainer);
+                }
+
             }
-            
+
+            // 🔴 Length
+            const timeElement = await getTimeElement(item);
+            if (timeElement) {
+                if (minLength || maxLength) {
+                    const videoLengthInMinutes = parseVideoLength(timeElement);
+                    const isTooShort = minLength !== null && videoLengthInMinutes < minLength;
+                    const isTooLong = maxLength !== null && videoLengthInMinutes > maxLength;
+                    if (isTooShort || isTooLong) {
+                        hiddenVideos += hideElement(parentContainer);
+                        continue;
+                    }
+                } else {
+                    shownVideos += showElement(parentContainer);
+                }
+                
+            }
+
+
+
         }
-        // Update the counter after processing all new videos
-        // lastProcessedIndex = videoItems.length;
     }
+
+
+
 
     // // Helper function to parse video age (in days)
     // function parseVideoAge(ageText) {
@@ -885,7 +891,6 @@ function loadEmptyFilters(){
 
 
     function applyOnceFilters(){
-        console.log(currentMaxViews);
         applyFilters(false);
     }
     // Function to apply filters
@@ -1030,3 +1035,83 @@ function applyFilters(shouldFiltersSave = true) {
     }
     })();
 }
+
+
+
+// All selectors from youtube
+
+    function isLivestream(item) {
+        // item.querySelector('.badge-style-type-live-now-alternate') ||
+        // item.querySelector('.badge-shape-wiz.badge-shape-wiz--thumbnail-live.badge-shape-wiz--thumbnail-badge') //old selectors didnt work for me (might be dependant on youtube version)
+            
+        liveBadgeElement = item.querySelector('.badge-shape-wiz--thumbnail-live')     //should work for all languages, looks for live badge class selector.
+        // const liveTextElement = item.querySelector('.badge-shape-wiz__text');
+        // return liveTextElement && liveTextElement.textContent.trim() === "LIVE"; //checks for text value so for other languages might not work
+        
+        return liveBadgeElement
+    }
+
+    function isWatched(item) {
+        // return item.querySelector('ytd-thumbnail-overlay-resume-playback-renderer'); //old selectors didnt work for me (might be dependant on youtube version)
+        return item.querySelector('yt-thumbnail-overlay-progress-bar-view-model')
+    }
+
+    function getVideoTitle(item) {
+        // return item.querySelector('#video-title-link')?.title ?? ""; //old selectors didnt work for me (might be dependant on youtube version)
+        titleElement = item.querySelector('.yt-lockup-metadata-view-model-wiz__title');
+        if (!titleElement) return "";  // return empty string if no title found
+        return titleElement.textContent.trim();
+    }
+
+    function isPlaylist(item) {
+        // return (
+        //     // item.querySelector('ytd-thumbnail-overlay-bottom-panel-renderer yt-formatted-string') ||
+        //     // item.querySelector('yt-thumbnail-overlay-badge-view-model')
+        // ); //old selectors didnt work for me (might be dependant on youtube version)
+        const playlistTextElement = item.querySelector('.badge-shape-wiz__text');
+        return playlistTextElement && (playlistTextElement.textContent.trim() === "Mix" || playlistTextElement.textContent.trim() === "Playlist");  //works for olny english (mix and playlist)
+        //should change this to look for playlist badge class selector so it doesnt compare text values that may differ depending on language
+    }
+
+    function getViewsElement(item) {
+        const metadataLine = item.querySelector('yt-lockup-metadata-view-model');
+        if (!metadataLine) return null;
+        // return metadataLine?.querySelector('span.inline-metadata-item:nth-of-type(1)'); //old selectors didnt work for me (might be dependant on youtube version)
+        return metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(1)');
+
+    }
+
+    function getDateElement(item) {
+        const metadataLine = item.querySelector('yt-lockup-metadata-view-model');
+        if (!metadataLine) return null;
+         
+        // return metadataLine?.querySelector('span.inline-metadata-item:nth-of-type(2)'); //old selectors didnt work for me (might be dependant on youtube version)
+        return metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(3)');
+ 
+    }
+
+
+    async function getTimeElement(item) {
+        const timeBadgeTextElement = await  waitForElementInsideNode(item, '.badge-shape-wiz__text');
+        return timeBadgeTextElement.textContent.trim();
+    }
+
+        function waitForElementInsideNode(node, selector, timeout = 1000) {
+        return new Promise((resolve, reject) => {
+            const interval = 50; // Check every 50ms
+            const maxAttempts = timeout / interval; // Max attempts before giving up
+            let attempts = 0;
+    
+            const check = () => {
+                const el = node.querySelector(selector);
+                if (el || attempts >= maxAttempts) {
+                    resolve(el); // If element found or timeout reached
+                } else {
+                    attempts++;
+                    setTimeout(check, interval); // Keep checking
+                }
+            };
+    
+            check(); // Start checking immediately
+        });
+    }
