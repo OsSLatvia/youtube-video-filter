@@ -1,9 +1,12 @@
+let newVersion;
 // Ensure the script runs only on YouTube
 if (window.location.hostname === 'www.youtube.com') {
 
     const NEW_BUTTON_TEXT = 'Filters'; // Text for the new button
     const HOME_BUTTON_SELECTOR = 'ytd-guide-section-renderer.style-scope:nth-child(1) > div:nth-child(2) > ytd-guide-entry-renderer:nth-child(1) > a:nth-child(1)'; // Updated selector for the Home button
     let userLanguage = document.documentElement.lang || 'en';
+    let versionIsSet = false;
+    
     const defaultSettings = {
         homepage: true,
         videoSearch: false,
@@ -485,6 +488,12 @@ function checkAndCallFilters(
     currentBlacklistedWords
 ) {
     let allVideos = videos;
+    if (!versionIsSet){
+        if (allVideos.length>1){
+                newVersion = isNewYouTubeVersion();
+                versionIsSet=false;
+        }
+    }
     filterRecommendations(
         allVideos,
         currentMaxAge,
@@ -1043,7 +1052,7 @@ function applyFilters(shouldFiltersSave = true) {
     function isNewYouTubeVersion() {
         return !!document.querySelector('.yt-lockup-metadata-view-model-wiz__title');
     }
-    const newVersion = isNewYouTubeVersion();
+
 
     function isLivestream(item) {
         if (newVersion) {
