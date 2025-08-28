@@ -1,11 +1,9 @@
-let newVersion;
 // Ensure the script runs only on YouTube
 if (window.location.hostname === 'www.youtube.com') {
 
     const NEW_BUTTON_TEXT = 'Filters'; // Text for the new button
     const HOME_BUTTON_SELECTOR = 'ytd-guide-section-renderer.style-scope:nth-child(1) > div:nth-child(2) > ytd-guide-entry-renderer:nth-child(1) > a:nth-child(1)'; // Updated selector for the Home button
     let userLanguage = document.documentElement.lang || 'en';
-    let versionIsSet = false;
     
     const defaultSettings = {
         homepage: true,
@@ -488,12 +486,6 @@ function checkAndCallFilters(
     currentBlacklistedWords
 ) {
     let allVideos = videos;
-    if (!versionIsSet){
-        if (allVideos.length>1){
-                newVersion = isNewYouTubeVersion();
-                versionIsSet=true;
-        }
-    }
     filterRecommendations(
         allVideos,
         currentMaxAge,
@@ -607,6 +599,7 @@ function checkAndCallFilters(
             if(viewsElement) {
                 if (minViews || maxViews) {
                     const videoViews = parseVideoViews(viewsElement);
+                    console.log("views: ", videoViews)
                     let shouldHide = false;
                     if (minViews !== null && videoViews < minViews) {
                         shouldHide = true;
@@ -629,7 +622,8 @@ function checkAndCallFilters(
             }
 
             // 🔴 Length
-            const timeElement = await getTimeElement(item);
+            // const timeElement = await getTimeElement(item);
+            const timeElement = getTimeElement(item);
             if (timeElement) {
                 if (minLength || maxLength) {
                     const videoLengthInMinutes = parseVideoLength(timeElement);
@@ -1048,86 +1042,68 @@ function applyFilters(shouldFiltersSave = true) {
 
 
 // All selectors from youtube
-// Detect if new YouTube version is active (adjust selector as needed)
-    function isNewYouTubeVersion() {
-        return !!document.querySelector('.yt-lockup-metadata-view-model-wiz__title');
-    }
 
 
     function isLivestream(item) {
-        if (newVersion) {
-            // New version selector
-            return item.querySelector('.badge-shape-wiz--thumbnail-live') || null;
-        } else {
-            // Old version selectors
-            return item.querySelector('.badge-style-type-live-now-alternate') ||
-                item.querySelector('.badge-shape-wiz.badge-shape-wiz--thumbnail-live.badge-shape-wiz--thumbnail-badge') || null;
-        }
-    }
+        // Find any badge overlay (where YouTube puts Live label)
+        const badge = item.querySelector('yt-thumbnail-overlay-badge-view-model');
+        if (!badge) return false;
 
+        const text = badge.textContent.trim().toLowerCase();
+        return text.includes("live");
+    }
     function isWatched(item) {
-        if (newVersion) {
-            return item.querySelector('yt-thumbnail-overlay-progress-bar-view-model') || null;
-        } else {
-            return item.querySelector('ytd-thumbnail-overlay-resume-playback-renderer') || null;
-        }
+        return item.querySelector('yt-thumbnail-overlay-progress-bar-view-model') || null;
     }
 
     function getVideoTitle(item) {
-        if (newVersion) {
-            const titleElement = item.querySelector('.yt-lockup-metadata-view-model-wiz__title');
-            return titleElement ? titleElement.textContent.trim() : "";
-        } else {
-            const titleElement = item.querySelector('#video-title-link');
-            return titleElement ? (titleElement.title || titleElement.textContent.trim()) : "";
+        // Look for any element with a "title" attribute inside this video item
+        const titleElement = item.querySelector('[title]');
+        if (titleElement) {
+            console.log(titleElement.getAttribute("title").trim());
+            return titleElement.getAttribute("title").trim();
         }
     }
 
     function isPlaylist(item) {
-        if (newVersion) {
-            const playlistTextElement = item.querySelector('.badge-shape-wiz__text');
-            return playlistTextElement && (playlistTextElement.textContent.trim() === "Mix" || playlistTextElement.textContent.trim() === "Playlist");
-        } else {
-            return !!(item.querySelector('yt-thumbnail-overlay-badge-view-model') ||
-                    item.querySelector('ytd-thumbnail-overlay-bottom-panel-renderer yt-formatted-string'));
-        }
+        // Find any badge overlay (where YouTube puts Mix / Playlist labels)
+        const badge = item.querySelector('yt-thumbnail-overlay-badge-view-model');
+        if (!badge) return false;
+
+        const text = badge.textContent.trim().toLowerCase();
+        return text.includes("playlist") || text.includes("mix");
     }
 
     function getViewsElement(item) {
-        if (newVersion) {
-            const metadataLine = item.querySelector('yt-lockup-metadata-view-model');
-            if (!metadataLine) return null;
-            const el = metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(1)');
-            return el ? el.textContent : null;
-        } else {
-            const metadataLine = item.querySelector('#metadata-line');
-            if (!metadataLine) return null;
-            const el = metadataLine.querySelector('span.inline-metadata-item:nth-of-type(1)');
-            return el ? el.textContent : null;
+        // Grab all spans/divs that might contain text
+        const candidates = item.querySelectorAll('span, div');
+
+        for (const el of candidates) {
+            const text = el.textContent.trim();
+
+            // Match strings like "123 views", "1.2K views", "3,456,789 views"
+            if (/^\d[\d,.]*\s*(K|M|B)?\s*views$/i.test(text)) {
+                console.log(text);
+                return text;
+            }
         }
     }
 
     function getDateElement(item) {
-        if (newVersion) {
             const metadataLine = item.querySelector('yt-lockup-metadata-view-model');
             if (!metadataLine) return null;
             const el = metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(3)');
             return el ? el.textContent : null;
-        } else {
-            const metadataLine = item.querySelector('#metadata-line');
-            if (!metadataLine) return null;
-            const el = metadataLine.querySelector('span.inline-metadata-item:nth-of-type(2)') ;
-            return el ? el.textContent : null;
-        }
     }
 
-    async function getTimeElement(item) {
-    // Assuming this badge is the same on both versions; otherwise add conditional here too
-    const timeBadgeTextElement = await waitForElementInsideNode(item, '.badge-shape-wiz__text');
+    function getTimeElement(item) {
+    //async function getTimeElement(item) {
+    // const timeBadgeTextElement = await waitForElementInsideNode(item, '.yt-badge-shape__text');
+    const timeBadgeTextElement = item.querySelector('.yt-badge-shape__text');
     return timeBadgeTextElement ? timeBadgeTextElement.textContent.trim() : null;
     }
 
-        function waitForElementInsideNode(node, selector, timeout = 1000) {
+    function waitForElementInsideNode(node, selector, timeout = 1000) {
         return new Promise((resolve, reject) => {
             const interval = 50; // Check every 50ms
             const maxAttempts = timeout / interval; // Max attempts before giving up
