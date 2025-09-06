@@ -1,13 +1,10 @@
 {
-  "manifest_version": 2,
+  "manifest_version": 3,
   "name": "YouTube Recommendation Filter",
-  "version": "3.3",
+  "version": "3.4",
   "description": "Filter YouTube recommendations by video age and views",
-  "permissions": [
-    "tabs",
-    "https://www.youtube.com/*",
-    "storage"  // Add this line to request storage permission
-  ],
+  "permissions": ["tabs", "storage"],
+  "host_permissions": ["https://www.youtube.com/*"],
   "icons": {
     "48": "icons/icon.png"
   },
@@ -15,11 +12,21 @@
     {
       "matches": ["https://www.youtube.com/*"],
       "js": ["content_script.js"],
-      "css": ["content_style.css"]  // Only include this if you have separate CSS
+      "css": ["content_style.css"]
     }
   ],
-  "browser_action": {
-    "default_popup": "popup.html", // Set the popup HTML
-    "default_icon": "icons/icon.png" // Icon for the popup
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": "icons/icon.png"
+  },
+
+  "browser_specific_settings": {
+    "gecko": {
+      "id": "{a64b02c2-169e-438b-bcd2-6f3a0897c0e8}",
+      "data_collection_permissions": {
+        "required":  ["none"]
+      }
+    }
   }
+
 }

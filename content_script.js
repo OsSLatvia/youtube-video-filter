@@ -1,8 +1,43 @@
 // Ensure the script runs only on YouTube
 if (window.location.hostname === 'www.youtube.com') {
 
+    // Cross-browser storage wrapper
+    const storage = {
+        get: (key) => {
+            return new Promise((resolve, reject) => {
+                try {
+                    chrome.storage.local.get(key, (result) => {
+                        if (chrome.runtime.lastError) {
+                            reject(chrome.runtime.lastError);
+                        } else {
+                            resolve(result);
+                        }
+                    });
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        },
+        set: (items) => {
+            return new Promise((resolve, reject) => {
+                try {
+                    chrome.storage.local.set(items, () => {
+                        if (chrome.runtime.lastError) {
+                            reject(chrome.runtime.lastError);
+                        } else {
+                            resolve();
+                        }
+                    });
+                } catch (err) {
+                    reject(err);
+                }
+            });
+        }
+    };
+
+    
     const NEW_BUTTON_TEXT = 'Filters'; // Text for the new button
-    const HOME_BUTTON_SELECTOR = 'ytd-guide-section-renderer.style-scope:nth-child(1) > div:nth-child(2) > ytd-guide-entry-renderer:nth-child(1) > a:nth-child(1)'; // Updated selector for the Home button
+    const HOME_BUTTON_SELECTOR = 'ytd-guide-section-renderer.style-scope:nth-child(1) > div:nth-child(2) > ytd-guide-entry-renderer:nth-child(1) > a:nth-child(1)';
     let userLanguage = document.documentElement.lang || 'en';
     
     const defaultSettings = {
@@ -12,39 +47,37 @@ if (window.location.hostname === 'www.youtube.com') {
         channel: false,
         sidebarRecommendations: true,
         wordBlacklist: '',
-    }; //used if user havent saved his settings
+    };
     let generalSettings = defaultSettings;
+
     const timeUnits = {
         en: { 'day': 1, 'week': 7, 'month': 30, 'year': 365 },
-        lv: { 'dien': 1, 'nedēļ': 7, 'mēne': 30, 'gad': 365  }, //use olny word root
+        lv: { 'dien': 1, 'nedēļ': 7, 'mēne': 30, 'gad': 365 },
         es: { 'día': 1, 'semana': 7, 'mes': 30, 'año': 365 }, 
         fr: { 'jour': 1, 'semaine': 7, 'mois': 30, 'an': 365 }, 
-    };// Add more languages as needed
-    //careful of plural forms when adding new languages, use word roots that match plural forms
-    
+    };
+
     const abbreviations = {
         en: { thousand: 'K', million: 'M' },
         lv: { thousand: 'tūkst', million: 'milj' }, 
         es: { thousand: 'K', million: 'M' },
         fr: { thousand: 'k', million: 'M' }, 
-    }; // Add more languages as needed
-    
-    let maxAgeField=null;
-    let forceRecheckOnNextMutation=false;
-    
+    };
+
+    let maxAgeField = null;
+    let forceRecheckOnNextMutation = false;
+
     async function loadLanguageSettings() {
-        let result = {}
+        let result = {};
         try {
-            result = await browser.storage.local.get('langSettings');
+            result = await storage.get('langSettings');
         } catch (error) {
             console.error('Error retrieving settings:', error);
         }
         const settings = result.langSettings || {};
-        const useCustomLang = settings.useCustomLang || false;  // Default to false if not set
+        const useCustomLang = settings.useCustomLang || false;
         if (useCustomLang) { 
-            // Set userLanguage to 'custom' if the checkbox is checked
             userLanguage = 'custom';
-            // Add custom language data to timeUnits and abbreviations (replace with custom values as needed)
             timeUnits.custom = {
                 [settings.timeUnits.day]: 1,
                 [settings.timeUnits.week]: 7,
@@ -55,23 +88,24 @@ if (window.location.hostname === 'www.youtube.com') {
                 thousand: settings.abbreviations.thousand,
                 million: settings.abbreviations.million 
             };
-        };
+        }
     }
+
     async function loadGeneralSettings() {
-        let result = {}
+        let result = {};
         try {
-            result = await browser.storage.local.get('generalSettings');
+            result = await storage.get('generalSettings');
             if (!result.generalSettings) {
-                browser.storage.local.set({ generalSettings: defaultSettings }); //if settings are not set, for first time users, default values saved in browser storage
+                await storage.set({ generalSettings: defaultSettings });
             } else {
                 generalSettings = result.generalSettings;
             }
         } catch (error) {
             console.error('Error retrieving settings:', error);            
         }
-
     }
-    
+
+
     (async () => {
         await Promise.all([
             loadLanguageSettings(),  // This starts immediately
@@ -130,10 +164,10 @@ if (window.location.hostname === 'www.youtube.com') {
         const storedMaxViews = localStorage.getItem('ytMaxViews');
         const storedMinLength = localStorage.getItem('ytMinLength');
         const storedMaxLength = localStorage.getItem('ytMaxLength');
-        const storedLivestreams = localStorage.getItem('ytRemoveLivestreams');
-        const storedPlaylists = localStorage.getItem('ytRemovePlaylists');
-        const storedWatchedVideos = localStorage.getItem('ytRemoveWatchedVideos');
-        const storedBlacklistedWords = localStorage.getItem('ytFilterBlacklistedWords');
+        const storedLivestreams = localStorage.getItem('ytRemoveLivestreams') === "true";
+        const storedPlaylists = localStorage.getItem('ytRemovePlaylists') === "true";
+        const storedWatchedVideos = localStorage.getItem('ytRemoveWatchedVideos') === "true";
+        const storedBlacklistedWords = localStorage.getItem('ytFilterBlacklistedWords') === "true";
         if (storedMaxAge) currentMaxAge = parseInt(storedMaxAge);
         if (storedMinViews) currentMinViews = parseInt(storedMinViews);
         if (storedMaxViews) currentMaxViews = parseInt(storedMaxViews);
@@ -141,10 +175,12 @@ if (window.location.hostname === 'www.youtube.com') {
         if (storedMaxLength) currentMaxLength = parseFloat(storedMaxLength);
 
         // Set the currentLivestreams and currentPlaylists only if stored as 'true'
-        currentLivestreams = storedLivestreams === 'true';  // Default to false if not stored
-        currentPlaylists = storedPlaylists === 'true';  // Default to false if not stored
-        currentWatchedVideos = storedWatchedVideos === 'true';  // Default to false if not stored
-        currentBlacklistedWords = storedBlacklistedWords === 'true';
+        currentLivestreams = storedLivestreams === true;  // Default to false if not stored
+        currentPlaylists = storedPlaylists === true;  // Default to false if not stored
+        currentWatchedVideos = storedWatchedVideos === true;  // Default to false if not stored
+        currentBlacklistedWords = storedBlacklistedWords === true;
+        console.log("filrers loaded")
+        console.log("current  livestreams", currentLivestreams)
     }
 
     function saveFilters() {
@@ -194,6 +230,7 @@ if (window.location.hostname === 'www.youtube.com') {
             
             if (sidebar) {
                 injectFiltersButton();
+                console.log("injecting")
                 observer.disconnect(); // Stop observing once the sidebar is loaded
             }
         });
@@ -216,6 +253,7 @@ function injectFiltersButton() {
     // Inject UI into DOM
     sidebar.insertAdjacentElement('beforebegin', buttonUI);
     maxAgeField = document.getElementById('ageFilterContainer');
+    setInputFieldsToCurrentValuesSafe();
     updateMaxAgeFieldVisibility(window.location.pathname);
 }
 
@@ -254,7 +292,7 @@ function injectFiltersButton() {
         ageInput.value = currentMaxAge || '';
         ageFilterGroup.appendChild(ageLabel);
         ageFilterGroup.appendChild(ageInput);
-    
+        
         // Min Views Filter
         const viewFilterGroup = document.createElement('div');
         viewFilterGroup.className = 'filter-group';
@@ -322,7 +360,7 @@ function injectFiltersButton() {
         livestreamsInput.type = 'checkbox';
         livestreamsInput.id = 'filterLivestreams';
         livestreamsInput.style.marginRight = '5px';
-        livestreamsInput.checked = currentLivestreams;
+        livestreamsInput.checked = currentLivestreams || false;
         const livestreamsLabel = document.createElement('label');
         livestreamsLabel.setAttribute('for', 'filterLivestreams');
         livestreamsLabel.style.marginRight = '15px';
@@ -337,7 +375,7 @@ function injectFiltersButton() {
         playlistsInput.type = 'checkbox';
         playlistsInput.id = 'filterPlaylists';
         playlistsInput.style.marginRight = '5px';
-        playlistsInput.checked = currentPlaylists;
+        playlistsInput.checked = currentPlaylists || false;
         const playlistsLabel = document.createElement('label');
         playlistsLabel.setAttribute('for', 'filterPlaylists');
         playlistsLabel.style.marginRight = '15px';
@@ -352,7 +390,7 @@ function injectFiltersButton() {
         watchedVideosInput.type = 'checkbox';
         watchedVideosInput.id = 'filterWatchedVideos';
         watchedVideosInput.style.marginRight = '5px';
-        watchedVideosInput.checked = currentWatchedVideos;
+        watchedVideosInput.checked = currentWatchedVideos || false;
         const watchedVideosLabel = document.createElement('label');
         watchedVideosLabel.setAttribute('for', 'filterWatchedVideos');
         watchedVideosLabel.style.marginRight = '15px';
@@ -367,7 +405,7 @@ function injectFiltersButton() {
         blacklistedWordsInput.type = 'checkbox';
         blacklistedWordsInput.id = 'filterBlacklistedWords';
         blacklistedWordsInput.style.marginRight = '5px';
-        blacklistedWordsInput.checked = currentBlacklistedWords; 
+        blacklistedWordsInput.checked = currentBlacklistedWords || false;
         const blacklistedWordsLabel = document.createElement('label');
         blacklistedWordsLabel.setAttribute('for', 'filterBlacklistedWords');
         blacklistedWordsLabel.style.marginRight = '15px';
@@ -444,7 +482,7 @@ function injectFiltersButton() {
         } else if (path.startsWith('/@') || path.startsWith('/channel/')) {
             return 'ytd-rich-item-renderer'; // Channel page
         } else if (path.startsWith('/watch')) {
-            return 'ytd-compact-video-renderer'; // sidebar page *old selector
+            return 'yt-lockup-view-model'; // sidebar page *old selector
             // return 'yt-lockup-view-model-wiz--compact'; // sidebar page *new selector but on sidebar recomendations element ids have changed so cant use the same filters.
         } else {
             return '#dismissible'; // Fallback (old structure)
@@ -599,7 +637,6 @@ function checkAndCallFilters(
             if(viewsElement) {
                 if (minViews || maxViews) {
                     const videoViews = parseVideoViews(viewsElement);
-                    console.log("views: ", videoViews)
                     let shouldHide = false;
                     if (minViews !== null && videoViews < minViews) {
                         shouldHide = true;
@@ -739,14 +776,14 @@ function checkAndCallFilters(
         let currentPath = "";
         function handlePathChange(newPath) {
             if (newPath !== currentPath) {
+                console.log("path change:" ,currentPath , " -> ", newPath)
                 currentPath = newPath;
                 updateMaxAgeFieldVisibility(newPath);
                 if (!isFilterEnabledForPath(newPath)){
                     loadEmptyFilters();
+                    
                 } else {
                     loadStoredFilters();
-                    setInputFieldsToStoredValues();
-                    applyOnceFilters();
                     areFiltersSet = (
                         (currentMaxAge !== null && allowedPath(newPath)) ||
                         currentMinViews !== null ||
@@ -759,6 +796,10 @@ function checkAndCallFilters(
                         currentBlacklistedWords 
                     );
                 }
+                console.log("applying filters : ", currentLivestreams )
+                setInputFieldsToCurrentValuesSafe();
+                applyOnceFilters();
+                console.log(" filters applied" )
             }
         }
 
@@ -770,6 +811,7 @@ function checkAndCallFilters(
             let newVideos;
             if (forceRecheckOnNextMutation){
                 newVideos = findAllVideos(document);
+                applyOnceFilters();
                 forceRecheckOnNextMutation=false;
             }
             else{
@@ -793,88 +835,96 @@ function checkAndCallFilters(
     
         domObserver.observe(document.body, { childList: true, subtree: true });
     }
-    
-function setInputFieldsToStoredValues() {
-    const storedMaxAge = localStorage.getItem('ytMaxAge');
-    const storedMinViews = localStorage.getItem('ytMinViews');
-    const storedMaxViews = localStorage.getItem('ytMaxViews');
-    const storedMinLength = localStorage.getItem('ytMinLength');
-    const storedMaxLength = localStorage.getItem('ytMaxLength');
-    
-    if (storedMaxAge) {
-        document.getElementById('ageFilter').value = parseInt(storedMaxAge);
+
+function setInputFieldsToCurrentValuesSafe() {
+    const filterButton = document.getElementById('custom_filters_button');
+    if (!filterButton) {
+        return;
+    }//checks if filter button is present, if not dont try to set field values 
+
+    // ✅ Safe to call now, the button exists
+    setInputFieldsToCurrentValues();
+}
+
+function setInputFieldsToCurrentValues() {
+    // const storedMaxAge = localStorage.getItem('ytMaxAge');
+    // const storedMinViews = localStorage.getItem('ytMinViews');
+    // const storedMaxViews = localStorage.getItem('ytMaxViews');
+    // const storedMinLength = localStorage.getItem('ytMinLength');
+    // const storedMaxLength = localStorage.getItem('ytMaxLength');
+    if (currentMaxAge) {
+        document.getElementById('ageFilter').value = parseInt(currentMaxAge);
+        console.log("stored");
     } else {
         document.getElementById('ageFilter').value = '';
+        console.log("not stored");
     }
-
-    if (storedMinViews) {
-        document.getElementById('viewFilter').value = parseInt(storedMinViews);
+    if (currentMinViews) {
+        document.getElementById('viewFilter').value = parseInt(currentMinViews);
     } else {
         document.getElementById('viewFilter').value = '';
     }
-
-    if (storedMaxViews) {
-        document.getElementById('maxViewFilter').value = parseInt(storedMaxViews);
+    if (currentMaxViews) {
+        document.getElementById('maxViewFilter').value = parseInt(currentMaxViews);
     } else {
         document.getElementById('maxViewFilter').value = '';
     }
 
-    if (storedMinLength) {
-        document.getElementById('lengthMinFilter').value = parseFloat(storedMinLength);
+    if (currentMinLength) {
+        document.getElementById('lengthMinFilter').value = parseFloat(currentMinLength);
     } else {
         document.getElementById('lengthMinFilter').value = '';
     }
-
-    if (storedMaxLength) {
-        document.getElementById('lengthMaxFilter').value = parseFloat(storedMaxLength);
+    if (currentMaxLength) {
+        document.getElementById('lengthMaxFilter').value = parseFloat(currentMaxLength);
     } else {
         document.getElementById('lengthMaxFilter').value = '';
     }
-
-    const storedLivestreams = localStorage.getItem('ytRemoveLivestreams');
-    const storedPlaylists = localStorage.getItem('ytRemovePlaylists');
-    const storedWatchedVideos = localStorage.getItem('ytRemoveWatchedVideos');
-    const storedBlacklistedWords = localStorage.getItem('ytFilterBlacklistedWords');
-    document.getElementById('filterLivestreams').checked = (storedLivestreams === 'true');
-    document.getElementById('filterPlaylists').checked = (storedPlaylists === 'true');
-    document.getElementById('filterWatchedVideos').checked = (storedWatchedVideos === 'true');
-    document.getElementById('filterBlacklistedWords').checked = (storedBlacklistedWords === 'true');
-
+    // const storedLivestreams = localStorage.getItem('ytRemoveLivestreams');
+    // const storedPlaylists = localStorage.getItem('ytRemovePlaylists');
+    // const storedWatchedVideos = localStorage.getItem('ytRemoveWatchedVideos');
+    // const storedBlacklistedWords = localStorage.getItem('ytFilterBlacklistedWords');
+    document.getElementById('filterLivestreams').checked = (currentLivestreams === true);
+    document.getElementById('filterPlaylists').checked = (currentPlaylists === true);
+    document.getElementById('filterWatchedVideos').checked = (currentWatchedVideos === true);
+    document.getElementById('filterBlacklistedWords').checked = (currentBlacklistedWords === true);
     // Get stored blacklisted words and set them in the input field
-    
-    if (storedBlacklistedWords) {
-        document.getElementById('blacklistedWordsInput').value = storedBlacklistedWords;
-    } else {
-        document.getElementById('blacklistedWordsInput').value = ''; // Default to empty if no words are stored
-    }
+    console.log("inputfield values set")
+    console.log("set livestreams:", currentLivestreams)
+    console.log("checkbox value livestreams:", (currentLivestreams === true))
+    // if (storedBlacklistedWords) {
+    //     document.getElementById('blacklistedWordsInput').value = storedBlacklistedWords;
+    // } else {
+    //     document.getElementById('blacklistedWordsInput').value = ''; // Default to empty if no words are stored
+    // }
+    // console.log("9");
 }
 
     // Function to reset all filters
     function resetFilters() {
 
         loadStoredFilters();
-        setInputFieldsToStoredValues();
+        setInputFieldsToCurrentValuesSafe();
         applyOnceFilters();
     }
 function loadEmptyFilters(){
-    document.getElementById('ageFilter').value = '';
-    document.getElementById('viewFilter').value = '';
-    document.getElementById('lengthMinFilter').value = '';
-    document.getElementById('lengthMaxFilter').value = '';
-    document.getElementById('filterLivestreams').checked = false;
-    document.getElementById('filterPlaylists').checked = false;
-    document.getElementById('filterWatchedVideos').checked = false;
-    document.getElementById('filterBlacklistedWords').checked = false;
-
+    // document.getElementById('ageFilter').value = '';
+    // document.getElementById('viewFilter').value = '';
+    // document.getElementById('lengthMinFilter').value = '';
+    // document.getElementById('lengthMaxFilter').value = '';
+    // document.getElementById('filterLivestreams').checked = false;
+    // document.getElementById('filterPlaylists').checked = false;
+    // document.getElementById('filterWatchedVideos').checked = false;
+    // document.getElementById('filterBlacklistedWords').checked = false;
     currentMaxAge = null;
     currentMinViews = null;
     currentMaxViews = null;
     currentMinLength = null;
     currentMaxLength = null;
-    currentLivestreams = null;
-    currentPlaylists = null;
-    currentWatchedVideos = null;
-    currentBlacklistedWords = null;
+    currentLivestreams = false;
+    currentPlaylists = false;
+    currentWatchedVideos = false;
+    currentBlacklistedWords = false;
 
     areFiltersSet = false;
 
@@ -1024,7 +1074,6 @@ function applyFilters(shouldFiltersSave = true) {
             if (targetPath === currentPath) {
                 // Same path link clicked → expect a soft reload
                 forceRecheckOnNextMutation = true;
-                console.log('[Filters] Soft reload via link click');
             }
         }, { capture: true }); // Capture phase to catch clicks before navigation
     }
@@ -1060,7 +1109,6 @@ function applyFilters(shouldFiltersSave = true) {
         // Look for any element with a "title" attribute inside this video item
         const titleElement = item.querySelector('[title]');
         if (titleElement) {
-            console.log(titleElement.getAttribute("title").trim());
             return titleElement.getAttribute("title").trim();
         }
     }
@@ -1083,7 +1131,6 @@ function applyFilters(shouldFiltersSave = true) {
 
             // Match strings like "123 views", "1.2K views", "3,456,789 views"
             if (/^\d[\d,.]*\s*(K|M|B)?\s*views$/i.test(text)) {
-                console.log(text);
                 return text;
             }
         }

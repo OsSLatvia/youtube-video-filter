@@ -1,29 +1,43 @@
-// Default settings
+// --- Cross-browser storage wrapper ---
+const storage = {
+    get: (key, defaultValue) => {
+        return new Promise((resolve, reject) => {
+            try {
+                // If key is string and defaultValue provided, wrap as object
+                const getKey = defaultValue !== undefined ? { [key]: defaultValue } : key;
+                const api = typeof browser !== "undefined" ? browser.storage.local : chrome.storage.local;
+                api.get(getKey, (result) => {
+                    if (chrome?.runtime?.lastError) reject(chrome.runtime.lastError);
+                    else resolve(result);
+                });
+            } catch (err) { reject(err); }
+        });
+    },
+    set: (items) => {
+        return new Promise((resolve, reject) => {
+            try {
+                const api = typeof browser !== "undefined" ? browser.storage.local : chrome.storage.local;
+                api.set(items, () => {
+                    if (chrome?.runtime?.lastError) reject(chrome.runtime.lastError);
+                    else resolve();
+                });
+            } catch (err) { reject(err); }
+        });
+    }
+};
+
+// --- Default settings ---
 const defaultLangSettings = {
     useCustomLang: false,
-    timeUnits: {
-        day: 'day',
-        week: 'week',
-        month: 'month',
-        year: 'year',
-    },
-    abbreviations: {
-        thousand: 'K',
-        million: 'M',
-    },
+    timeUnits: { day: 'day', week: 'week', month: 'month', year: 'year' },
+    abbreviations: { thousand: 'K', million: 'M' },
 };
-
 const defaultGeneralSettings = {
-    homepage: true,
-    videoSearch: false,
-    subscriptions: false,
-    channel: false,
-    sidebarRecommendations: true,
-    wordBlacklist: '',
+    homepage: true, videoSearch: false, subscriptions: false,
+    channel: false, sidebarRecommendations: true, wordBlacklist: ''
 };
 
-
-// DOM Elements for Lang Settings
+// --- DOM Elements ---
 const useCustomLangCheckbox = document.getElementById('use-custom-lang');
 const dayInput = document.getElementById('day');
 const weekInput = document.getElementById('week');
@@ -34,7 +48,6 @@ const millionInput = document.getElementById('million');
 const saveLangButton = document.getElementById('save');
 const resetLangButton = document.getElementById('reset');
 
-// DOM Elements for General Settings (Tab 3)
 const homepageCheckbox = document.getElementById('setting-homepage');
 const videoSearchCheckbox = document.getElementById('setting-video-search');
 const subscriptionsCheckbox = document.getElementById('setting-subscriptions');
@@ -43,11 +56,11 @@ const sidebarRecommendationsCheckbox = document.getElementById('setting-sidebar-
 const wordBlacklistInput = document.getElementById('setting-word-blacklist');
 const saveGeneralButton = document.getElementById('save-settings');
 
-// Load Lang Settings
+// --- Load Language Settings ---
 async function loadLangSettings() {
     try {
-        const result = await browser.storage.local.get('langSettings');
-        const settings = result.langSettings || defaultLangSettings;
+        const result = await storage.get('langSettings', defaultLangSettings);
+        const settings = result.langSettings;
 
         useCustomLangCheckbox.checked = settings.useCustomLang;
         dayInput.value = settings.timeUnits.day;
@@ -61,7 +74,7 @@ async function loadLangSettings() {
     }
 }
 
-// Save Lang Settings
+// --- Save Language Settings ---
 async function saveLangSettings() {
     const settings = {
         useCustomLang: useCustomLangCheckbox.checked,
@@ -74,31 +87,27 @@ async function saveLangSettings() {
         abbreviations: {
             thousand: thousandInput.value || defaultLangSettings.abbreviations.thousand,
             million: millionInput.value || defaultLangSettings.abbreviations.million,
-        },
+        }
     };
-
-    try {
-        await browser.storage.local.set({ langSettings: settings });
-    } catch (error) {
-        console.error('Error saving lang settings:', error);
-    }
+    try { await storage.set({ langSettings: settings }); }
+    catch (error) { console.error('Error saving lang settings:', error); }
 }
 
-// Reset Lang Settings
+// --- Reset Language Settings ---
 async function resetLangSettings() {
     try {
-        await browser.storage.local.set({ langSettings: defaultLangSettings });
+        await storage.set({ langSettings: defaultLangSettings });
         loadLangSettings();
     } catch (error) {
         console.error('Error resetting lang settings:', error);
     }
 }
 
-// Load General Settings from storage
+// --- Load General Settings ---
 async function loadGeneralSettings() {
     try {
-        const result = await browser.storage.local.get('generalSettings');
-        const settings = result.generalSettings || defaultGeneralSettings;
+        const result = await storage.get('generalSettings', defaultGeneralSettings);
+        const settings = result.generalSettings;
 
         homepageCheckbox.checked = settings.homepage;
         videoSearchCheckbox.checked = settings.videoSearch;
@@ -111,7 +120,7 @@ async function loadGeneralSettings() {
     }
 }
 
-// Save General Settings to storage
+// --- Save General Settings ---
 async function saveGeneralSettings() {
     const settings = {
         homepage: homepageCheckbox.checked,
@@ -121,15 +130,11 @@ async function saveGeneralSettings() {
         sidebarRecommendations: sidebarRecommendationsCheckbox.checked,
         wordBlacklist: wordBlacklistInput.value,
     };
-
-    try {
-        await browser.storage.local.set({ generalSettings: settings });
-    } catch (error) {
-        console.error('Error saving general settings:', error);
-    }
+    try { await storage.set({ generalSettings: settings }); }
+    catch (error) { console.error('Error saving general settings:', error); }
 }
 
-// Event Listeners
+// --- Event Listeners ---
 document.addEventListener('DOMContentLoaded', () => {
     loadLangSettings();
     loadGeneralSettings();
@@ -139,7 +144,7 @@ saveLangButton.addEventListener('click', saveLangSettings);
 resetLangButton.addEventListener('click', resetLangSettings);
 saveGeneralButton.addEventListener('click', saveGeneralSettings);
 
-// Tab switching
+// --- Tab Switching ---
 const tabs = document.querySelectorAll('.tab');
 const contents = document.querySelectorAll('.content');
 
@@ -147,7 +152,6 @@ tabs.forEach((tab, index) => {
     tab.addEventListener('click', () => {
         tabs.forEach(t => t.classList.remove('active'));
         contents.forEach(c => c.classList.remove('active'));
-
         tab.classList.add('active');
         contents[index].classList.add('active');
     });
