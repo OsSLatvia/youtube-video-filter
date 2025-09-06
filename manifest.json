@@ -1,10 +1,9 @@
 {
   "manifest_version": 3,
   "name": "YouTube Recommendation Filter",
-  "version": "3.4",
-  "description": "Filter YouTube recommendations by video age and views",
-  "permissions": ["tabs", "storage"],
-  "host_permissions": ["https://www.youtube.com/*"],
+  "version": "3.5",
+  "description": "Filter YouTube recommendations by video age, views, length ect.",
+  "permissions": ["storage"],
   "icons": {
     "48": "icons/icon.png"
   },
