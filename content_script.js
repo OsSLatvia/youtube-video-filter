@@ -1,5 +1,6 @@
 // Ensure the script runs only on YouTube
-if (window.location.hostname === 'www.youtube.com') {
+// if (window.location.hostname === 'www.youtube.com') //dont need it if content script is already set to run only on YouTube via the manifest
+{
 
     // Cross-browser storage wrapper
     const storage = {
