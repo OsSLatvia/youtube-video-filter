@@ -1124,18 +1124,26 @@ function applyFilters(shouldFiltersSave = true) {
     }
 
     function getViewsElement(item) {
-        // Grab all spans/divs that might contain text
-        const candidates = item.querySelectorAll('span, div');
-
-        for (const el of candidates) {
-            const text = el.textContent.trim();
-
-            // Match strings like "123 views", "1.2K views", "3,456,789 views"
-            if (/^\d[\d,.]*\s*(K|M|B)?\s*views$/i.test(text)) {
-                return text;
-            }
-        }
+            const metadataLine = item.querySelector('yt-lockup-metadata-view-model');
+            if (!metadataLine) return null;
+            const el = metadataLine.querySelector('div:nth-of-type(2) > span[role="text"]:nth-of-type(1)');
+            return el ? el.textContent : null;
     }
+    // function getViewsElement(item)
+    // {
+    //     // Grab all spans/divs that might contain text
+    //     const candidates = item.querySelectorAll('span, div');
+
+    //     for (const el of candidates) {
+    //         const text = el.textContent.trim();
+
+    //         // Match strings like "123 views", "1.2K views", "3,456,789 views"
+    //         if (/^\d[\d,.]*\s*(K|M|B)?\s*views$/i.test(text)) {
+    //             console.log(text);
+    //             return text;
+    //         }
+    //     }
+    // }
 
     function getDateElement(item) {
             const metadataLine = item.querySelector('yt-lockup-metadata-view-model');
