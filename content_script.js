@@ -48,6 +48,7 @@
         channel: false,
         sidebarRecommendations: true,
         wordBlacklist: '',
+        repeatRecommendationLimit: 10,
     };
     let generalSettings = defaultSettings;
 
@@ -125,6 +126,7 @@
     let currentPlaylists = null;
     let currentWatchedVideos = null;
     let currentBlacklistedWords = null;
+    let currentRepeatRecommendation = null;
     function isFilterEnabledForPath(path) {
         if (path === '/') {
             return generalSettings.homepage;
@@ -169,6 +171,7 @@
         const storedPlaylists = localStorage.getItem('ytRemovePlaylists') === "true";
         const storedWatchedVideos = localStorage.getItem('ytRemoveWatchedVideos') === "true";
         const storedBlacklistedWords = localStorage.getItem('ytFilterBlacklistedWords') === "true";
+        const storedRepeatRecommendation = localStorage.getItem('ytRepeatRecommendation') === "true";
         if (storedMaxAge) currentMaxAge = parseInt(storedMaxAge);
         if (storedMinViews) currentMinViews = parseInt(storedMinViews);
         if (storedMaxViews) currentMaxViews = parseInt(storedMaxViews);
@@ -180,6 +183,7 @@
         currentPlaylists = storedPlaylists === true;  // Default to false if not stored
         currentWatchedVideos = storedWatchedVideos === true;  // Default to false if not stored
         currentBlacklistedWords = storedBlacklistedWords === true;
+        currentRepeatRecommendation = storedRepeatRecommendation === true;
         console.log("filrers loaded")
         console.log("current  livestreams", currentLivestreams)
     }
@@ -194,7 +198,7 @@
         localStorage.setItem('ytRemovePlaylists', currentPlaylists);
         localStorage.setItem('ytRemoveWatchedVideos', currentWatchedVideos);
         localStorage.setItem('ytFilterBlacklistedWords', currentBlacklistedWords);
-
+        localStorage.setItem('ytRepeatRecommendation', currentRepeatRecommendation);
     }
     
     let filtersButtonWrapper = null;
@@ -413,6 +417,21 @@ function injectFiltersButton() {
         blacklistedWordsLabel.textContent = 'Filter Blacklisted Words';
         blacklistedWordsFilterGroup.appendChild(blacklistedWordsInput);
         blacklistedWordsFilterGroup.appendChild(blacklistedWordsLabel);
+
+        // Repeat recommendations Checkbox
+        const repeatRecommendationGroup = document.createElement('div');
+        repeatRecommendationGroup.className = 'filter-group checkbox-group';
+        const repeatRecommendationInput = document.createElement('input');
+        repeatRecommendationInput.type = 'checkbox';
+        repeatRecommendationInput.id = 'filterRepeatRecommendation';
+        repeatRecommendationInput.style.marginRight = '5px';
+        repeatRecommendationInput.checked = currentRepeatRecommendation || false;
+        const repeatRecommendationLabel = document.createElement('label');
+        repeatRecommendationLabel.setAttribute('for', 'filterRepeatRecommendation');
+        repeatRecommendationLabel.style.marginRight = '15px';
+        repeatRecommendationLabel.textContent = 'Filter Repeat Recommendations';
+        repeatRecommendationGroup.appendChild(repeatRecommendationInput);
+        repeatRecommendationGroup.appendChild(repeatRecommendationLabel);
     
         // Buttons
         const buttonGroup = document.createElement('div');
@@ -445,6 +464,7 @@ function injectFiltersButton() {
         filterBar.appendChild(playlistsFilterGroup);
         filterBar.appendChild(watchedVideosFilterGroup)
         filterBar.appendChild(blacklistedWordsFilterGroup);
+        filterBar.appendChild(repeatRecommendationGroup);
         filterBar.appendChild(buttonGroup);
     
         buttonWrapper.appendChild(filterBar);
@@ -459,7 +479,8 @@ function injectFiltersButton() {
             currentLivestreams ||
             currentPlaylists ||
             currentWatchedVideos ||
-            currentBlacklistedWords 
+            currentBlacklistedWords || 
+            currentRepeatRecommendation
         );
         applyOnceFilters();
         setupLinkClickListener();
@@ -522,7 +543,8 @@ function checkAndCallFilters(
     currentLivestreams,
     currentPlaylists,
     currentWatchedVideos,
-    currentBlacklistedWords
+    currentBlacklistedWords,
+    currentRepeatRecommendation
 ) {
     let allVideos = videos;
     filterRecommendations(
@@ -535,7 +557,8 @@ function checkAndCallFilters(
         currentLivestreams,
         currentPlaylists,
         currentWatchedVideos,
-        currentBlacklistedWords
+        currentBlacklistedWords,
+        currentRepeatRecommendation
     );
 }
 
@@ -546,9 +569,32 @@ function checkAndCallFilters(
 
 
 
+    async function loadRecommendCountStorage() {
+        try {
+            let result = await storage.get('recommendCountStorage');
+            if (result.recommendCountStorage && result.recommendCountStorage.recommendCountDictionary) {
+                // console.log("LOAD");
+                // console.log(result.recommendCountStorage);
+                return result.recommendCountStorage.recommendCountDictionary;
+            }
 
+        } catch (error) {
+            console.error('Error retrieving storage:', error);            
+        }
+        return {};
+    }
 
+    async function saveRecommendCountStorage(new_counts) {
+        const settings = {
+            recommendCountDictionary: new_counts
+        };
 
+        // console.log("SAVE");
+        // console.log(settings);
+
+        try { await storage.set({ recommendCountStorage: settings }); }
+        catch (error) { console.error('Error in saveRecommendCountStorage', error); }
+    }
 
 
 
@@ -563,13 +609,16 @@ function checkAndCallFilters(
         removeLivestreams,
         removePlaylists,
         removeWatchedVideos,
-        removeBlacklistedWords
+        removeBlacklistedWords,
+        removeRepeatRecommendation
     ) {
         let hiddenVideos = 0;
         let shownVideos = 0;
         const selector = getVideoSelectorByPath();
         const blacklist = (generalSettings.wordBlacklist ?? "").toLowerCase().split(";").filter(Boolean);
 
+        let recommendCountStorage = await loadRecommendCountStorage();
+        
         for (const item of videoItems) {
             const parentContainer = item.closest(selector);
             if (!parentContainer) continue;
@@ -677,9 +726,26 @@ function checkAndCallFilters(
                 
             }
 
+            // 🔴 Repeat Recommenadtions
+            if (removeRepeatRecommendation) {
+                const video_id = getVideoTitle(item); // todo should use video link
+                
+                let count = recommendCountStorage[video_id] || 0;
 
+                if (count > generalSettings.repeatRecommendationLimit) {
+                    // console.log("FILTERED");
+                    // console.log(video_id);
+                    hiddenVideos += hideElement(parentContainer);
+                    continue;
+                } else {
+                    recommendCountStorage[video_id] = count + 1;
+                    shownVideos += showElement(parentContainer);
+                }
+            }
 
         }
+
+        saveRecommendCountStorage(recommendCountStorage);
     }
 
 
@@ -794,7 +860,8 @@ function checkAndCallFilters(
                         currentLivestreams ||
                         currentPlaylists ||
                         currentWatchedVideos ||
-                        currentBlacklistedWords 
+                        currentBlacklistedWords || 
+                        currentRepeatRecommendation
                     );
                 }
                 console.log("applying filters : ", currentLivestreams )
@@ -829,7 +896,8 @@ function checkAndCallFilters(
                     currentLivestreams,
                     currentPlaylists,
                     currentWatchedVideos,
-                    currentBlacklistedWords
+                    currentBlacklistedWords,
+                    currentRepeatRecommendation
                 );
             }
         });
@@ -889,6 +957,7 @@ function setInputFieldsToCurrentValues() {
     document.getElementById('filterPlaylists').checked = (currentPlaylists === true);
     document.getElementById('filterWatchedVideos').checked = (currentWatchedVideos === true);
     document.getElementById('filterBlacklistedWords').checked = (currentBlacklistedWords === true);
+    document.getElementById('filterRepeatRecommendation').checked = (currentRepeatRecommendation === true);
     // Get stored blacklisted words and set them in the input field
     console.log("inputfield values set")
     console.log("set livestreams:", currentLivestreams)
@@ -926,6 +995,7 @@ function loadEmptyFilters(){
     currentPlaylists = false;
     currentWatchedVideos = false;
     currentBlacklistedWords = false;
+    currentRepeatRecommendation = false;
 
     areFiltersSet = false;
 
@@ -939,7 +1009,8 @@ function loadEmptyFilters(){
         currentLivestreams,
         currentPlaylists,
         currentWatchedVideos,
-        currentBlacklistedWords
+        currentBlacklistedWords,
+        currentRepeatRecommendation
     );
 }
 
@@ -959,6 +1030,7 @@ function applyFilters(shouldFiltersSave = true) {
     let filterPlaylists = currentPlaylists ?? false;
     let filterWatchedVideos = currentWatchedVideos ?? false;
     let filterBlacklistedWords = currentBlacklistedWords ?? false;
+    let filterRepeatRecommendation = currentRepeatRecommendation ?? false;
 
     // try to override from DOM if elements exist
     const ageEl = document.getElementById('ageFilter');
@@ -988,6 +1060,9 @@ function applyFilters(shouldFiltersSave = true) {
     const blacklistedEl = document.getElementById('filterBlacklistedWords');
     if (blacklistedEl) filterBlacklistedWords = blacklistedEl.checked;
 
+    const repeatedEl = document.getElementById('filterRepeatRecommendation');
+    if (repeatedEl) filterRepeatRecommendation = repeatedEl.checked;
+
     // update current values
     currentMaxAge = maxAge ? parseInt(maxAge) : null;
     currentMinViews = minViews ? parseInt(minViews) : null;
@@ -998,7 +1073,7 @@ function applyFilters(shouldFiltersSave = true) {
     currentPlaylists = filterPlaylists;
     currentWatchedVideos = filterWatchedVideos;
     currentBlacklistedWords = filterBlacklistedWords;
-
+    currentRepeatRecommendation = filterRepeatRecommendation;
     // Save filters if requested
     if (shouldFiltersSave) {
         saveFilters(); 
@@ -1014,7 +1089,8 @@ function applyFilters(shouldFiltersSave = true) {
         currentLivestreams ||
         currentPlaylists ||
         currentWatchedVideos ||
-        currentBlacklistedWords
+        currentBlacklistedWords ||
+        currentRepeatRecommendation
     );
 
     // Call filtering logic
@@ -1028,7 +1104,8 @@ function applyFilters(shouldFiltersSave = true) {
         currentLivestreams,
         currentPlaylists,
         currentWatchedVideos,
-        currentBlacklistedWords 
+        currentBlacklistedWords,
+        currentRepeatRecommendation
     );
 }
 

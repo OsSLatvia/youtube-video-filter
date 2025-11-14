@@ -34,7 +34,7 @@ const defaultLangSettings = {
 };
 const defaultGeneralSettings = {
     homepage: true, videoSearch: false, subscriptions: false,
-    channel: false, sidebarRecommendations: true, wordBlacklist: ''
+    channel: false, sidebarRecommendations: true, wordBlacklist: '', repeatRecommendationLimit: 10
 };
 
 // --- DOM Elements ---
@@ -54,6 +54,8 @@ const subscriptionsCheckbox = document.getElementById('setting-subscriptions');
 const channelCheckbox = document.getElementById('setting-channel');
 const sidebarRecommendationsCheckbox = document.getElementById('setting-sidebar-recomendations');
 const wordBlacklistInput = document.getElementById('setting-word-blacklist');
+const repeatRecommendationLimitInput = document.getElementById('repeat-recommendation-limit');
+const clearRepeatRecommendationCounterButton = document.getElementById('clear-repeat-recommendation-counter');
 const saveGeneralButton = document.getElementById('save-settings');
 
 // --- Load Language Settings ---
@@ -115,6 +117,7 @@ async function loadGeneralSettings() {
         channelCheckbox.checked = settings.channel;
         sidebarRecommendationsCheckbox.checked = settings.sidebarRecommendations;
         wordBlacklistInput.value = settings.wordBlacklist ?? "";
+        repeatRecommendationLimitInput.value = settings.repeatRecommendationLimit ?? 10;
     } catch (error) {
         console.error('Error loading general settings:', error);
     }
@@ -129,9 +132,20 @@ async function saveGeneralSettings() {
         channel: channelCheckbox.checked,
         sidebarRecommendations: sidebarRecommendationsCheckbox.checked,
         wordBlacklist: wordBlacklistInput.value,
+        repeatRecommendationLimit: Number(repeatRecommendationLimitInput.value)
     };
     try { await storage.set({ generalSettings: settings }); }
     catch (error) { console.error('Error saving general settings:', error); }
+}
+
+
+// --- Clear Repeat Recommendation Counter ---
+async function clearRepeatRecommendationCounterFunc() {
+    const settings = {
+        recommendCountDictionary: {}
+    };
+    try { await storage.set({ recommendCountStorage: settings }); }
+    catch (error) { console.error('Error in Clear Repeat Recommendation Counter', error); }
 }
 
 // --- Event Listeners ---
@@ -143,6 +157,7 @@ document.addEventListener('DOMContentLoaded', () => {
 saveLangButton.addEventListener('click', saveLangSettings);
 resetLangButton.addEventListener('click', resetLangSettings);
 saveGeneralButton.addEventListener('click', saveGeneralSettings);
+clearRepeatRecommendationCounterButton.addEventListener('click', clearRepeatRecommendationCounterFunc);
 
 // --- Tab Switching ---
 const tabs = document.querySelectorAll('.tab');
