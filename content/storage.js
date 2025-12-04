@@ -35,7 +35,7 @@
     };
 
     // Load language settings (if user saved custom language labels)
-    ns.loadLanguageSettings = async function() {
+    ns.storage.loadLanguageSettings = async function() {
         let result = {};
         try {
             result = await ns.storage.get('langSettings');
@@ -61,7 +61,7 @@
     };
 
     // Load general settings (persisted)
-    ns.loadGeneralSettings = async function() {
+    ns.storage.loadGeneralSettings = async function() {
         let result = {};
         try {
             result = await ns.storage.get('generalSettings');
@@ -77,7 +77,7 @@
     };
 
     // recommendCountStorage helpers
-    ns.loadRecommendCountStorage = async function() {
+    ns.storage.loadRecommendCountStorage = async function() {
         try {
             let result = await ns.storage.get('recommendCountStorage');
             if (result.recommendCountStorage && result.recommendCountStorage.recommendCountDictionary) {
@@ -89,7 +89,7 @@
         return {};
     };
 
-    ns.saveRecommendCountStorage = async function(new_counts) {
+    ns.storage.saveRecommendCountStorage = async function(new_counts) {
         const settings = { recommendCountDictionary: new_counts };
         try {
             await ns.storage.set({ recommendCountStorage: settings });

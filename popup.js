@@ -31,6 +31,7 @@ const defaultLangSettings = {
     useCustomLang: false,
     timeUnits: { day: 'day', week: 'week', month: 'month', year: 'year' },
     abbreviations: { thousand: 'K', million: 'M' },
+    badges: {liveBadge: 'LIVE', playlistBadge:'Playlist'}
 };
 const defaultGeneralSettings = {
     homepage: true, videoSearch: false, subscriptions: false,
@@ -45,6 +46,8 @@ const monthInput = document.getElementById('month');
 const yearInput = document.getElementById('year');
 const thousandInput = document.getElementById('thousand');
 const millionInput = document.getElementById('million');
+const liveBadgeInput = document.getElementById('live-badge');           
+const playlistBadgeInput = document.getElementById('playlist-badge');   
 const saveLangButton = document.getElementById('save');
 const resetLangButton = document.getElementById('reset');
 
@@ -71,6 +74,9 @@ async function loadLangSettings() {
         yearInput.value = settings.timeUnits.year;
         thousandInput.value = settings.abbreviations.thousand;
         millionInput.value = settings.abbreviations.million;
+        liveBadgeInput.value = settings.badges.liveBadge;
+        playlistBadgeInput.value = settings.badges.playlistBadge;
+
     } catch (error) {
         console.error('Error loading lang settings:', error);
     }
@@ -89,6 +95,10 @@ async function saveLangSettings() {
         abbreviations: {
             thousand: thousandInput.value || defaultLangSettings.abbreviations.thousand,
             million: millionInput.value || defaultLangSettings.abbreviations.million,
+        },
+        badges: {
+            liveBadge: liveBadgeInput.value || defaultLangSettings.badges.liveBadge,
+            playlistBadge: playlistBadgeInput.value || defaultLangSettings.badges.playlistBadge,
         }
     };
     try { await storage.set({ langSettings: settings }); }
