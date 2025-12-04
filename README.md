@@ -4,3 +4,12 @@ link to firefox addon : https://addons.mozilla.org/en-GB/firefox/addon/youtube-v
 
 link to chrome addon : https://chromewebstore.google.com/detail/youtube-recommendation-fi/gldcpndmolfbdlgmmiljfiknidjgbbfh?authuser=0&hl=en
 
+File functions, main logic in "content" folder:
+
+  storage — saving/loading settings
+  utils — parsing & helpers
+  language — timestamp & view count localization
+  filters — core filtering logic
+  mutations — detecting new videos
+  ui — filter menu and interaction
+  main — glue that connects everything
