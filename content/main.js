@@ -173,10 +173,11 @@
 
         // load stored filters from localStorage (existing logic)
         ns.loadStoredFilters();
-
+        
+        ns.applyOnceFilters();
         // create UI wrapper (but don't inject yet)
         ns.buttonUI = ns.ui.createFiltersButtonUI();
-
+        
         // insert into DOM if sidebar already present
         ns.mutations.waitForSidebarToLoad();
 
