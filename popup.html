@@ -67,13 +67,13 @@
             Thousand: <input type="text" id="thousand" placeholder="K"><br>
             Million: <input type="text" id="million" placeholder="M">
         </div>
-        <button id="save">Save</button>
-        <button id="reset">Reset to Default</button>
         <div class="field">
             <label>Badges:</label><br>
             Live Badge Text: <input type="text" id="live-badge" placeholder="LIVE"><br>
-            Playlist Badge Text: <input type="text" id="playlist-badge" placeholder="Playlist">
+            Playlist Badge Text: <input type="text" id="playlist-badge" placeholder="Mix">
         </div>
+        <button id="save">Save</button>
+        <button id="reset">Reset to Default</button>
     </div>
     
         <!-- Tab 3: Settings -->
@@ -101,7 +101,7 @@
         <div class="field">
             <label><input type="text" id="setting-word-blacklist", value=""> Video title word blacklist (case ignored, seperated by ; )</label>
         </div>
-        <div class="field"></div>
+        <div class="field">
             <label><input type="number" id="repeat-recommendation-limit", value="10", min="1" max="100"> Repeat recommendation limit</label>
             <button id="clear-repeat-recommendation-counter">Clear Repeat Recommendation Counter</button>
         </div>

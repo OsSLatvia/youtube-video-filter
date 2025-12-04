@@ -31,7 +31,7 @@ const defaultLangSettings = {
     useCustomLang: false,
     timeUnits: { day: 'day', week: 'week', month: 'month', year: 'year' },
     abbreviations: { thousand: 'K', million: 'M' },
-    badges: {liveBadge: 'LIVE', playlistBadge:'Playlist'}
+    badges: {liveBadge: 'LIVE', playlistBadge:'Mix'}
 };
 const defaultGeneralSettings = {
     homepage: true, videoSearch: false, subscriptions: false,

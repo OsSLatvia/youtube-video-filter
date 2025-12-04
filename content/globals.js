@@ -31,6 +31,13 @@ YTFilter.abbreviations = {
     es: { thousand: 'K', million: 'M' },
     fr: { thousand: 'k', million: 'M' }
 };
+YTFilter.badges = {
+    en: { liveBadge: 'LIVE', playlistBadge: 'Mix' },
+    lv: { liveBadge: 'TIEŠRAIDE', playlistBadge: 'Kolekcija' },
+    es: { liveBadge: 'EN DIRECTO', playlistBadge: 'Mix' },
+    fr: { liveBadge: 'EN DIRECT', playlistBadge: 'Mix' }
+};
+
 
 // UI & state handles
 YTFilter.maxAgeField = null;

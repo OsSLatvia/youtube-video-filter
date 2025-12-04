@@ -56,7 +56,10 @@
                 thousand: settings.abbreviations.thousand,
                 million: settings.abbreviations.million
             };
-            ns.userLanguage = 'custom';
+            ns.badges.custom = {
+                liveBadge: settings.badges.liveBadge,
+                playlistBadge: settings.badges.playlistBadge
+            };
         }
     };
 

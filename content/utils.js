@@ -101,7 +101,10 @@
     ns.utils.isLivestream = function(item) {
         const badge = item.querySelector('yt-thumbnail-overlay-badge-view-model');
         if (!badge) return false;
-        return badge.textContent.trim().toLowerCase().includes("live");
+        const lang = (ns.userLanguage || 'en').split('-')[0];
+        const badges = ns.badges[lang] || ns.badges['en'];
+        const liveText = badges.liveBadge.toLowerCase();
+        return badge.textContent.trim().toLowerCase().includes(liveText);
     };
 
     ns.utils.isWatched = function(item) {
@@ -116,8 +119,10 @@
     ns.utils.isPlaylist = function(item) {
         const badge = item.querySelector('yt-thumbnail-overlay-badge-view-model');
         if (!badge) return false;
-        const text = badge.textContent.trim().toLowerCase();
-        return text.includes("playlist") || text.includes("mix");
+        const lang = (ns.userLanguage || 'en').split('-')[0];
+        const badges = ns.badges[lang] || ns.badges['en'];
+        const playlistText = badges.playlistBadge.toLowerCase();
+        return badge.textContent.trim().toLowerCase().includes(playlistText);
     };
 
     ns.utils.getViewsElement = function(item) {
