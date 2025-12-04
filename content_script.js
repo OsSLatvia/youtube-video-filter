@@ -262,7 +262,7 @@ function injectFiltersButton() {
     updateMaxAgeFieldVisibility(window.location.pathname);
 }
 
-    function allowedPath(path){
+    function allowedPath(path){ //used for hiding filter fields on some path (like subscriptions)
         if (path === '/') {
             return true;
         } else if (path.startsWith('/results')) {
@@ -523,7 +523,7 @@ function injectFiltersButton() {
         mutations.forEach(mutation => {
             if (mutation.addedNodes.length) {
                 mutation.addedNodes.forEach(node => {
-                    if (node.nodeType === 1 && node.matches(selector)) {
+                    if (node.nodeType === 1 && node.matches(selector)) { // nodeType === 1 -> Element node
                         videoItems.push(node);
                     }
                 });
