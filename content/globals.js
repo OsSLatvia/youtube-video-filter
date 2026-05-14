@@ -21,7 +21,7 @@ YTFilter.generalSettings = Object.assign({}, YTFilter.defaultSettings);
 // language/time units & abbreviations
 YTFilter.timeUnits = {
     //en: { 'day': 1, 'week': 7, 'month': 30, 'year': 365 },
-    en: { 'day': 1, 'wk': 7, 'mo': 30, 'yr': 365 },
+    en: { 'day': 1, 'week': 7, 'month': 30, 'year': 365 },
     lv: { 'dien': 1, 'nedēļ': 7, 'mēne': 30, 'gad': 365 },
     es: { 'día': 1, 'semana': 7, 'mes': 30, 'año': 365 },
     fr: { 'jour': 1, 'semaine': 7, 'mois': 30, 'an': 365 }

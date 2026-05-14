@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "YouTube Recommendation Filter",
-  "version": "3.9",
+  "version": "4.1",
   "description": "Filter YouTube recommendations by video age, views, length etc.",
   "permissions": ["storage"],
   "icons": {
